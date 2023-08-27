@@ -11,7 +11,7 @@ pub async fn api_call(
     let url = match platform {
         Platform::VK => format!("https://api.vk.com/method/{}", method),
         Platform::Telegram => format!(
-            "https://api.telegram.org/bot{}/{}",
+            "https://api.telegram.org/{}/{}",
             config.tg_access_token, method
         ),
     };
