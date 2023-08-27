@@ -109,7 +109,7 @@ impl UnifyedContext {
                     req_body.insert("message", message_str.as_str());
                     req_body.insert("random_id", "0");
                     req_body.insert("v", "5.131");
-                    let _ = request(
+                    request(
                         "https://api.vk.com/method/messages.send".to_owned(),
                         config.vk_access_token,
                         req_body,
@@ -204,8 +204,3 @@ pub struct Config {
     pub tg_access_token: String,
 }
 
-#[derive(Debug)]
-pub enum HyperRequestError {
-    RequestError(hyper::Error),
-    ResponseError(String),
-}
