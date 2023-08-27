@@ -35,7 +35,6 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
     default_function(ctx).await
 }
 async fn default_function(ctx: UnifyedContext) -> UnifyedContext {
-    println!("{:?}", ctx);
     println!("Default function called");
     ctx
 }

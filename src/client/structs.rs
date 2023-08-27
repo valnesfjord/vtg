@@ -114,7 +114,8 @@ impl UnifyedContext {
                         config.vk_access_token,
                         req_body,
                     )
-                    .await;
+                    .await
+                    .unwrap();
                 });
             }
             Platform::Telegram => {
@@ -133,7 +134,8 @@ impl UnifyedContext {
                         "".to_owned(),
                         req_body,
                     )
-                    .await;
+                    .await
+                    .unwrap();
                 });
             }
         }
@@ -200,4 +202,10 @@ pub struct Config {
     pub vk_group_id: i64,
     pub vk_api_version: String,
     pub tg_access_token: String,
+}
+
+#[derive(Debug)]
+pub enum HyperRequestError {
+    RequestError(hyper::Error),
+    ResponseError(String),
 }

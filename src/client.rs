@@ -1,11 +1,10 @@
 use hyper::{
-    body::Buf,
     header::{CONTENT_LENGTH, CONTENT_TYPE},
     Body, Client, Method, Request,
 };
 pub mod structs;
 use lazy_static::lazy_static;
-use std::{collections::HashMap, panic, str::from_utf8, sync::Arc};
+use std::{collections::HashMap, panic, sync::Arc};
 use structs::*;
 use tokio::{select, sync::Mutex};
 use tokio::{
@@ -16,7 +15,11 @@ lazy_static! {
     static ref CLIENT: Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body> =
         get_client();
 }
-pub async fn request(url: String, access_token: String, body: HashMap<&str, &str>) -> String {
+pub async fn request(
+    url: String,
+    access_token: String,
+    body: HashMap<&str, &str>,
+) -> Result<String, HyperRequestError> {
     let form_body = form_urlencoded::Serializer::new(String::new())
         .extend_pairs(body.iter())
         .finish();
@@ -28,10 +31,16 @@ pub async fn request(url: String, access_token: String, body: HashMap<&str, &str
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(Body::from(form_body))
         .unwrap();
-    let mut res = CLIENT.request(req).await.unwrap();
+    let res = CLIENT
+        .request(req)
+        .await
+        .map_err(HyperRequestError::RequestError)?;
 
-    let agregated_body = hyper::body::aggregate(res.body_mut()).await.unwrap();
-    from_utf8(agregated_body.chunk()).unwrap().to_owned()
+    let bytes = hyper::body::to_bytes(res.into_body())
+        .await
+        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
+    Ok(String::from_utf8(bytes.to_vec())
+        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?)
 }
 fn get_client() -> Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body> {
     let https = hyper_rustls::HttpsConnectorBuilder::new()
@@ -60,11 +69,13 @@ pub async fn get_vk_updates(
         req_body,
     )
     .await;
-    let updates: VKGetUpdates =
-        serde_json::from_str(get_updates.as_str()).unwrap_or(VKGetUpdates {
-            ts: ts.clone(),
-            updates: vec![],
-        });
+    let updates: VKGetUpdates = serde_json::from_str(
+        get_updates.unwrap_or("".to_string()).as_str(),
+    )
+    .unwrap_or(VKGetUpdates {
+        ts: ts.clone(),
+        updates: vec![],
+    });
     for update in updates.updates {
         let message = update.object.message;
         let unified = message.unify(config.clone());
@@ -84,7 +95,8 @@ pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
         req_body,
     )
     .await;
-    let server: VKGetServerResponse = serde_json::from_str(get_server.as_str()).unwrap();
+    let server: VKGetServerResponse =
+        serde_json::from_str(get_server.unwrap_or("".to_string()).as_str()).unwrap();
 
     server
 }
@@ -108,11 +120,13 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
     )
     .await;
 
-    let updates: TGGetUpdates =
-        serde_json::from_str(get_updates.as_str()).unwrap_or(TGGetUpdates {
-            ok: false,
-            result: vec![],
-        });
+    let updates: TGGetUpdates = serde_json::from_str(
+        get_updates.unwrap_or("".to_string()).as_str(),
+    )
+    .unwrap_or(TGGetUpdates {
+        ok: false,
+        result: vec![],
+    });
     for update in updates.result.clone() {
         if let Some(message) = update.message {
             let unified = message.unify(config.clone());
