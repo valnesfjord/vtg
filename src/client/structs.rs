@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::pin::Pin;
 use std::{collections::HashMap, future::Future};
 
-use super::api_requests::api_call;
+use super::api_requests::{api_call, ApiResponse};
 #[derive(Deserialize)]
 pub struct VKGetServer {
     pub key: String,
@@ -136,8 +136,10 @@ impl UnifyedContext {
         platform: Platform,
         method: String,
         params: HashMap<&str, &str>,
-    ) -> String {
-        api_call(platform, method, params, &self.config).await
+    ) -> ApiResponse {
+        api_call(platform, method, params, &self.config)
+            .await
+            .unwrap()
     }
 }
 
