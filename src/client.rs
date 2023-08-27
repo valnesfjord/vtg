@@ -86,10 +86,8 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
         result: vec![],
     });
     for update in updates.result.clone() {
-        if let Some(message) = update.message {
-            let unified = message.unify(config.clone());
-            tx.send(unified).await.unwrap();
-        }
+        let unified = update.unify(config.clone());
+        tx.send(unified).await.unwrap();
         *offset = update.update_id + 1;
     }
 }

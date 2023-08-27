@@ -48,7 +48,34 @@ pub struct TGGetUpdates {
 #[derive(Deserialize, Clone)]
 pub struct TGUpdate {
     pub message: Option<TGMessage>,
+    pub edited_message: Option<TGMessage>,
+    pub inline_query: Option<TGInlineQuery>,
+    pub chosen_inline_result: Option<TGChosenInlineResult>,
+    pub callback_query: Option<TGCallbackQuery>,
     pub update_id: i64,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct TGCallbackQuery {
+    pub id: String,
+    pub from: TGFrom,
+    pub message: Option<TGMessage>,
+    pub chat_instance: String,
+    pub data: Option<String>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct TGChosenInlineResult {
+    pub result_id: String,
+    pub from: TGFrom,
+    pub query: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct TGInlineQuery {
+    pub id: String,
+    pub from: TGFrom,
+    pub query: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -87,7 +114,13 @@ pub enum Platform {
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
     MessageNew,
+    MessageEdit,
+    InlineQuery,
+    ChosenInlineResult,
+    CallbackQuery,
+    Unknown,
 }
+
 pub trait UnifyContext {
     fn unify(&self, config: Config) -> UnifyedContext;
 }
@@ -157,14 +190,68 @@ impl UnifyContext for VKMessage {
     }
 }
 
-impl UnifyContext for TGMessage {
+impl UnifyContext for TGUpdate {
     fn unify(&self, config: Config) -> UnifyedContext {
+        let (r#type, text, chat_id, message_id, from_id) = match self {
+            TGUpdate {
+                message: Some(message),
+                ..
+            } => (
+                EventType::MessageNew,
+                message.text.clone(),
+                message.chat.id,
+                message.message_id,
+                message.from.id,
+            ),
+            TGUpdate {
+                edited_message: Some(message),
+                ..
+            } => (
+                EventType::MessageEdit,
+                message.text.clone(),
+                message.chat.id,
+                message.message_id,
+                message.from.id,
+            ),
+            TGUpdate {
+                inline_query: Some(query),
+                ..
+            } => (
+                EventType::InlineQuery,
+                Some(query.query.clone()),
+                0,
+                0,
+                query.from.id,
+            ),
+            TGUpdate {
+                chosen_inline_result: Some(result),
+                ..
+            } => (
+                EventType::ChosenInlineResult,
+                Some(result.query.clone()),
+                0,
+                0,
+                result.from.id,
+            ),
+            TGUpdate {
+                callback_query: Some(query),
+                ..
+            } => (
+                EventType::CallbackQuery,
+                query.data.clone(),
+                query.message.as_ref().unwrap().chat.id,
+                query.message.as_ref().unwrap().message_id,
+                query.from.id,
+            ),
+
+            _ => (EventType::Unknown, None, 0, 0, 0),
+        };
         UnifyedContext {
-            text: self.text.clone().unwrap_or("".to_owned()),
-            from_id: self.from.id,
-            peer_id: self.chat.id,
-            id: self.message_id,
-            r#type: EventType::MessageNew,
+            text: text.clone().unwrap_or("".to_owned()),
+            from_id: from_id,
+            peer_id: chat_id,
+            id: message_id,
+            r#type: r#type,
             platform: Platform::Telegram,
             config: config,
         }
