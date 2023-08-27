@@ -76,6 +76,7 @@ pub struct UnifyedContext {
     pub id: i64,
     pub r#type: EventType,
     pub platform: Platform,
+    config: Config,
 }
 #[derive(Debug, Clone)]
 pub enum Platform {
@@ -88,7 +89,7 @@ pub enum EventType {
     MessageNew,
 }
 pub trait UnifyContext {
-    fn unify(&self) -> UnifyedContext;
+    fn unify(&self, config: Config) -> UnifyedContext;
 }
 #[derive(Deserialize, Clone, Copy)]
 pub struct VKNewMessageResponse {
@@ -100,6 +101,7 @@ impl UnifyedContext {
         match self.platform {
             Platform::VK => {
                 let peer_id = self.peer_id.to_string();
+                let config = self.config.clone();
                 let message_str = message.to_owned();
                 tokio::task::spawn(async move {
                     let mut req_body = HashMap::new();
@@ -108,26 +110,30 @@ impl UnifyedContext {
                     req_body.insert("random_id", "0");
                     req_body.insert("v", "5.131");
                     let _ = request(
-                    "https://api.vk.com/method/messages.send".to_owned(),
-                    "11c14fe2a02b615e8561472eca997d5b0434623e1dfff3941ce180b5d5d5474cf25784e7a6b38eaed6b90"
-                        .to_owned(),
-                    req_body,
-                ).await;
+                        "https://api.vk.com/method/messages.send".to_owned(),
+                        config.vk_access_token,
+                        req_body,
+                    )
+                    .await;
                 });
             }
             Platform::Telegram => {
                 let peer_id = self.peer_id.to_string();
+                let config = self.config.clone();
                 let message_str = message.to_owned();
                 tokio::task::spawn(async move {
                     let mut req_body = HashMap::new();
                     req_body.insert("chat_id", peer_id.as_str());
                     req_body.insert("text", message_str.as_str());
                     request(
-                    "https://api.telegram.org/bot6254199489:AAEi17LOSCkdnSBx50r8wGjRaBRDM8iVxIs/sendMessage".to_owned(),
-                    ""
-                        .to_owned(),
-                    req_body,
-                ).await;
+                        format!(
+                            "https://api.telegram.org/{}/sendMessage",
+                            config.tg_access_token
+                        ),
+                        "".to_owned(),
+                        req_body,
+                    )
+                    .await;
                 });
             }
         }
@@ -135,7 +141,7 @@ impl UnifyedContext {
 }
 
 impl UnifyContext for VKMessage {
-    fn unify(&self) -> UnifyedContext {
+    fn unify(&self, config: Config) -> UnifyedContext {
         UnifyedContext {
             text: self.text.clone(),
             from_id: self.from_id,
@@ -143,12 +149,13 @@ impl UnifyContext for VKMessage {
             id: self.id,
             r#type: EventType::MessageNew,
             platform: Platform::VK,
+            config: config,
         }
     }
 }
 
 impl UnifyContext for TGMessage {
-    fn unify(&self) -> UnifyedContext {
+    fn unify(&self, config: Config) -> UnifyedContext {
         UnifyedContext {
             text: self.text.clone().unwrap_or("".to_owned()),
             from_id: self.from.id,
@@ -156,6 +163,7 @@ impl UnifyContext for TGMessage {
             id: self.message_id,
             r#type: EventType::MessageNew,
             platform: Platform::Telegram,
+            config: config,
         }
     }
 }
@@ -185,4 +193,11 @@ impl MiddlewareChain {
         }
         ctx
     }
+}
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub vk_access_token: String,
+    pub vk_group_id: i64,
+    pub vk_api_version: String,
+    pub tg_access_token: String,
 }

@@ -5,7 +5,7 @@ use hyper::{
 };
 pub mod structs;
 use lazy_static::lazy_static;
-use std::{collections::HashMap, str::from_utf8, sync::Arc};
+use std::{collections::HashMap, panic, str::from_utf8, sync::Arc};
 use structs::*;
 use tokio::{select, sync::Mutex};
 use tokio::{
@@ -47,6 +47,7 @@ pub async fn get_vk_updates(
     key: &mut String,
     ts: &mut String,
     tx: &Sender<UnifyedContext>,
+    config: &Config,
 ) {
     let mut req_body = HashMap::new();
     req_body.insert("act", "a_check");
@@ -55,28 +56,31 @@ pub async fn get_vk_updates(
     req_body.insert("wait", "25");
     let get_updates = request(
         format!("{}", server),
-        "11c14fe2a02b615e8561472eca997d5b0434623e1dfff3941ce180b5d5d5474cf25784e7a6b38eaed6b90"
-            .to_owned(),
+        config.vk_access_token.clone(),
         req_body,
     )
     .await;
-    let updates: VKGetUpdates = serde_json::from_str(get_updates.as_str()).unwrap();
+    let updates: VKGetUpdates =
+        serde_json::from_str(get_updates.as_str()).unwrap_or(VKGetUpdates {
+            ts: ts.clone(),
+            updates: vec![],
+        });
     for update in updates.updates {
         let message = update.object.message;
-        let unified = message.unify();
+        let unified = message.unify(config.clone());
         tx.send(unified).await.unwrap();
     }
     let new_ts = ts.parse::<i64>().unwrap() + 1;
     *ts = new_ts.to_string();
 }
-pub async fn get_vk_settings() -> VKGetServerResponse {
+pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     let mut req_body = HashMap::new();
-    req_body.insert("group_id", "195053810");
+    let vk_group_id = config.vk_group_id.to_string();
+    req_body.insert("group_id", vk_group_id.as_str());
     req_body.insert("v", "5.131");
     let get_server = request(
         "https://api.vk.com/method/groups.getLongPollServer".to_owned(),
-        "11c14fe2a02b615e8561472eca997d5b0434623e1dfff3941ce180b5d5d5474cf25784e7a6b38eaed6b90"
-            .to_owned(),
+        config.vk_access_token.clone(),
         req_body,
     )
     .await;
@@ -84,7 +88,7 @@ pub async fn get_vk_settings() -> VKGetServerResponse {
 
     server
 }
-pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>) {
+pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
     let mut req_body = HashMap::new();
     let off = offset.to_string();
     if off == "0" {
@@ -95,24 +99,31 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>) {
     }
     req_body.insert("timeout", "25");
     let get_updates = request(
-        "https://api.telegram.org/bot6254199489:AAEi17LOSCkdnSBx50r8wGjRaBRDM8iVxIs/getUpdates"
-            .to_owned(),
+        format!(
+            "https://api.telegram.org/{}/getUpdates",
+            config.tg_access_token.clone()
+        ),
         "".to_owned(),
         req_body,
     )
     .await;
-    let updates: TGGetUpdates = serde_json::from_str(get_updates.as_str()).unwrap();
+
+    let updates: TGGetUpdates =
+        serde_json::from_str(get_updates.as_str()).unwrap_or(TGGetUpdates {
+            ok: false,
+            result: vec![],
+        });
     for update in updates.result.clone() {
         if let Some(message) = update.message {
-            let unified = message.unify();
+            let unified = message.unify(config.clone());
             tx.send(unified).await.unwrap();
         }
         *offset = update.update_id + 1;
     }
 }
 
-pub async fn start_longpoll_client(middleware: MiddlewareChain) {
-    let vk_settings = get_vk_settings().await;
+pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) {
+    let vk_settings = get_vk_settings(&config).await;
     let mut server = vk_settings.response.server;
     let mut key = vk_settings.response.key;
     let mut ts = vk_settings.response.ts;
@@ -136,8 +147,8 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain) {
         });
     }
     loop {
-        let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx);
-        let tg_task = get_tg_updates(&mut offset, &tx);
+        let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx, &config);
+        let tg_task = get_tg_updates(&mut offset, &tx, &config);
         select! {
             _ = vk_task => {},
             _ = tg_task => {},
