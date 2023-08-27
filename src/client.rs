@@ -1,3 +1,4 @@
+pub mod api_requests;
 pub mod requests;
 pub mod structs;
 use requests::*;

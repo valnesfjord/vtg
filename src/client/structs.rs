@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::pin::Pin;
 use std::{collections::HashMap, future::Future};
 
-use super::request;
+use super::api_requests::api_call;
 #[derive(Deserialize)]
 pub struct VKGetServer {
     pub key: String,
@@ -109,13 +109,7 @@ impl UnifyedContext {
                     req_body.insert("message", message_str.as_str());
                     req_body.insert("random_id", "0");
                     req_body.insert("v", "5.131");
-                    request(
-                        "https://api.vk.com/method/messages.send".to_owned(),
-                        config.vk_access_token,
-                        req_body,
-                    )
-                    .await
-                    .unwrap();
+                    api_call(Platform::VK, "messages.send".to_string(), req_body, &config).await
                 });
             }
             Platform::Telegram => {
@@ -126,19 +120,24 @@ impl UnifyedContext {
                     let mut req_body = HashMap::new();
                     req_body.insert("chat_id", peer_id.as_str());
                     req_body.insert("text", message_str.as_str());
-                    request(
-                        format!(
-                            "https://api.telegram.org/{}/sendMessage",
-                            config.tg_access_token
-                        ),
-                        "".to_owned(),
+                    api_call(
+                        Platform::Telegram,
+                        "sendMessage".to_string(),
                         req_body,
+                        &config,
                     )
                     .await
-                    .unwrap();
                 });
             }
         }
+    }
+    pub async fn api_call(
+        &self,
+        platform: Platform,
+        method: String,
+        params: HashMap<&str, &str>,
+    ) -> String {
+        api_call(platform, method, params, &self.config).await
     }
 }
 
@@ -203,4 +202,3 @@ pub struct Config {
     pub vk_api_version: String,
     pub tg_access_token: String,
 }
-
