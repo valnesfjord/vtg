@@ -1,5 +1,7 @@
 use serde::Deserialize;
+use std::any::Any;
 use std::pin::Pin;
+use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, future::Future};
 
 use super::api_requests::{api_call, ApiResponse};
@@ -103,8 +105,10 @@ pub struct UnifyedContext {
     pub id: i64,
     pub r#type: EventType,
     pub platform: Platform,
+    pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     config: Config,
 }
+
 #[derive(Debug, Clone)]
 pub enum Platform {
     VK,
@@ -174,6 +178,14 @@ impl UnifyedContext {
             .await
             .unwrap()
     }
+    pub fn set_data<T: Any + Send + Sync>(&self, data: T) {
+        let mut data_to_edit = self.data.lock().unwrap();
+        *data_to_edit = Box::new(data);
+    }
+    pub fn get_data<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
+        let data = self.data.lock().unwrap();
+        data.downcast_ref::<T>().cloned()
+    }
 }
 
 impl UnifyContext for VKMessage {
@@ -185,6 +197,7 @@ impl UnifyContext for VKMessage {
             id: self.id,
             r#type: EventType::MessageNew,
             platform: Platform::VK,
+            data: Arc::new(Mutex::new(Box::new(()))),
             config: config,
         }
     }
@@ -253,6 +266,7 @@ impl UnifyContext for TGUpdate {
             id: message_id,
             r#type: r#type,
             platform: Platform::Telegram,
+            data: Arc::new(Mutex::new(Box::new(()))),
             config: config,
         }
     }

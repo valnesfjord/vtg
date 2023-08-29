@@ -120,8 +120,10 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
         let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx, &config);
         let tg_task = get_tg_updates(&mut offset, &tx, &config);
         select! {
-            _ = vk_task => {},
-            _ = tg_task => {},
+            _ = vk_task => {
+            },
+            _ = tg_task => {
+            },
         }
     }
 }

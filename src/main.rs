@@ -16,10 +16,14 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {
         return ctx;
     }
+    ctx.set_data(54);
     ctx
 }
 use regex_automata::Input;
 async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
+    if ctx.r#type != EventType::MessageNew {
+        return ctx;
+    }
     println!("{:?}", ctx.text);
     for command in COMMAND_VEC.iter() {
         if command
@@ -32,13 +36,8 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
         }
     }
 
-    default_function(ctx).await
-}
-async fn default_function(ctx: UnifyedContext) -> UnifyedContext {
-    println!("Default function called");
     ctx
 }
-
 #[tokio::main]
 async fn main() {
     let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();

@@ -10,6 +10,12 @@ pub struct Command {
 
 pub async fn hello_function(ctx: UnifyedContext) -> UnifyedContext {
     ctx.send("Hello");
+    let data = ctx.get_data::<i32>().unwrap();
+    println!("Data: {}", data);
+    ctx
+}
+pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
+    ctx.send("Pong");
     ctx
 }
 
@@ -23,6 +29,10 @@ pub fn command_vec() -> Vec<Command> {
         Command {
             regex: DFA::new(r"hello|hi").unwrap(),
             function: |ctx| Box::pin(hello_function(ctx)),
+        },
+        Command {
+            regex: DFA::new(r"!ping").unwrap(),
+            function: |ctx| Box::pin(ping_function(ctx)),
         },
         Command {
             regex: DFA::new(r"bye|goodbye").unwrap(),
