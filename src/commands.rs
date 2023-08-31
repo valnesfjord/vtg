@@ -1,17 +1,24 @@
-use regex_automata::dfa::dense::DFA;
+use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
 
 use crate::client::structs::UnifyedContext;
+
 pub struct Command {
-    pub regex: DFA<Vec<u32>>,
-    pub function:
-        fn(UnifyedContext) -> Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>,
+    pub regex: Regex,
+    pub function: fn(
+        UnifyedContext,
+        Captures,
+    ) -> Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>,
+}
+pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
+    caps.iter()
+        .map(|a| text.as_str().get(a.unwrap().range()).unwrap().to_string())
+        .collect()
 }
 
-pub async fn hello_function(ctx: UnifyedContext) -> UnifyedContext {
+pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedContext {
     ctx.send("Hello");
-    let data = ctx.get_data::<i32>().unwrap();
-    println!("Data: {}", data);
+    println!("{:?}", get_potential_matches(ctx.clone().text, caps));
     ctx
 }
 pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
@@ -27,16 +34,16 @@ pub async fn bye_function(ctx: UnifyedContext) -> UnifyedContext {
 pub fn command_vec() -> Vec<Command> {
     vec![
         Command {
-            regex: DFA::new(r"hello|hi").unwrap(),
-            function: |ctx| Box::pin(hello_function(ctx)),
+            regex: Regex::new(r"(?:hello|hi)\s(.*)").unwrap(),
+            function: |ctx, caps| Box::pin(hello_function(ctx, caps)),
         },
         Command {
-            regex: DFA::new(r"!ping").unwrap(),
-            function: |ctx| Box::pin(ping_function(ctx)),
+            regex: Regex::new(r"!ping").unwrap(),
+            function: |ctx, _| Box::pin(ping_function(ctx)),
         },
         Command {
-            regex: DFA::new(r"bye|goodbye").unwrap(),
-            function: |ctx| Box::pin(bye_function(ctx)),
+            regex: Regex::new(r"bye|goodbye").unwrap(),
+            function: |ctx, _| Box::pin(bye_function(ctx)),
         },
     ]
 }

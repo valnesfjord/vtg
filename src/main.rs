@@ -2,7 +2,6 @@ use client::{
     structs::{EventType, MiddlewareChain},
     *,
 };
-use regex_automata::dfa::Automaton;
 use std::env;
 pub mod client;
 use crate::client::structs::{Config, UnifyedContext};
@@ -25,14 +24,12 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
         return ctx;
     }
     println!("{:?}", ctx.text);
+    let input = Input::new(ctx.text.as_str());
     for command in COMMAND_VEC.iter() {
-        if command
-            .regex
-            .try_search_fwd(&Input::new(ctx.text.as_str()))
-            .unwrap()
-            .is_some()
-        {
-            return (command.function)(ctx).await;
+        if command.regex.is_match(input.clone()) {
+            let mut caps = command.regex.create_captures();
+            command.regex.captures(input.clone(), &mut caps);
+            return (command.function)(ctx, caps).await;
         }
     }
 
