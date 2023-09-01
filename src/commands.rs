@@ -23,6 +23,7 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
 }
 pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
     ctx.send("Pong");
+    println!("{:?}", ctx);
     ctx
 }
 
