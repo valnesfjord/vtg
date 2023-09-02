@@ -17,3 +17,5 @@ regex-automata = "0.3.6"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 async-trait = "0.1.73"
+[dev-dependencies]
+httpmock = "0.6"

@@ -13,7 +13,7 @@ lazy_static! {
     static ref CLIENT: Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body> = {
         let https = hyper_rustls::HttpsConnectorBuilder::new()
             .with_native_roots()
-            .https_only()
+            .https_or_http()
             .enable_all_versions()
             .build();
 
