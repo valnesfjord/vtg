@@ -35,8 +35,7 @@ pub async fn get_vk_updates(
         updates: vec![],
     });
     for update in updates.updates {
-        let message = update.object.message;
-        let unified = message.unify(config.clone());
+        let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
     }
     let new_ts = ts.parse::<i64>().unwrap() + 1;
