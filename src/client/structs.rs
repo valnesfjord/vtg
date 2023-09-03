@@ -22,18 +22,32 @@ pub struct VKGetUpdates {
     pub updates: Vec<VKUpdate>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct VKUpdate {
     pub r#type: String,
     pub object: VKObject,
 }
 
-#[derive(Deserialize)]
-pub struct VKObject {
+#[derive(Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum VKObject {
+    MessageNew(VKMessageNew),
+    MessageEvent(VKMessageEvent),
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct VKMessageEvent {
+    pub user_id: i64,
+    pub peer_id: i64,
+    pub event_id: String,
+    pub payload: String,
+    pub conversation_message_id: i64,
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct VKMessageNew {
     pub message: VKMessage,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct VKMessage {
     pub text: String,
     pub from_id: i64,
@@ -80,7 +94,7 @@ pub struct TGInlineQuery {
     pub query: String,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGMessage {
     pub text: Option<String>,
     pub from: TGFrom,
@@ -88,12 +102,12 @@ pub struct TGMessage {
     pub message_id: i64,
 }
 
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Deserialize, Clone, Copy, Debug)]
 pub struct TGFrom {
     pub id: i64,
 }
 
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Deserialize, Clone, Copy, Debug)]
 pub struct TGChat {
     pub id: i64,
 }
@@ -106,6 +120,7 @@ pub struct UnifyedContext {
     pub r#type: EventType,
     pub platform: Platform,
     pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     config: Config,
 }
 
@@ -132,7 +147,6 @@ pub trait UnifyContext {
 pub struct VKNewMessageResponse {
     pub response: i64,
 }
-
 impl UnifyedContext {
     pub fn send(&self, message: &str) {
         match self.platform {
@@ -186,78 +200,125 @@ impl UnifyedContext {
         let data = self.data.lock().unwrap();
         data.downcast_ref::<T>().cloned()
     }
+    pub fn get_event<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
+        let event = self.event.lock().unwrap();
+        event.downcast_ref::<T>().cloned()
+    }
 }
 
-impl UnifyContext for VKMessage {
+impl UnifyContext for VKUpdate {
     fn unify(&self, config: Config) -> UnifyedContext {
+        let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
+        let (r#type, text, chat_id, message_id, from_id) = match self.object.clone() {
+            VKObject::MessageNew(message) => {
+                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                (
+                    EventType::MessageNew,
+                    message.message.text.clone(),
+                    message.message.peer_id,
+                    message.message.id,
+                    message.message.from_id,
+                )
+            }
+            VKObject::MessageEvent(message) => {
+                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                (
+                    EventType::CallbackQuery,
+                    Some(message.payload.clone()).unwrap_or("".to_owned()),
+                    message.peer_id,
+                    message.conversation_message_id,
+                    message.user_id,
+                )
+            }
+        };
         UnifyedContext {
-            text: self.text.clone(),
-            from_id: self.from_id,
-            peer_id: self.peer_id,
-            id: self.id,
-            r#type: EventType::MessageNew,
+            text: text.clone(),
+            from_id: from_id,
+            peer_id: chat_id,
+            id: message_id,
+            r#type: r#type,
             platform: Platform::VK,
             data: Arc::new(Mutex::new(Box::new(()))),
             config: config,
+            event: event,
         }
     }
 }
 
 impl UnifyContext for TGUpdate {
     fn unify(&self, config: Config) -> UnifyedContext {
+        let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
         let (r#type, text, chat_id, message_id, from_id) = match self {
             TGUpdate {
                 message: Some(message),
                 ..
-            } => (
-                EventType::MessageNew,
-                message.text.clone(),
-                message.chat.id,
-                message.message_id,
-                message.from.id,
-            ),
+            } => {
+                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                (
+                    EventType::MessageNew,
+                    message.text.clone(),
+                    message.chat.id,
+                    message.message_id,
+                    message.from.id,
+                )
+            }
             TGUpdate {
                 edited_message: Some(message),
                 ..
-            } => (
-                EventType::MessageEdit,
-                message.text.clone(),
-                message.chat.id,
-                message.message_id,
-                message.from.id,
-            ),
+            } => {
+                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                (
+                    EventType::MessageEdit,
+                    message.text.clone(),
+                    message.chat.id,
+                    message.message_id,
+                    message.from.id,
+                )
+            }
             TGUpdate {
                 inline_query: Some(query),
                 ..
-            } => (
-                EventType::InlineQuery,
-                Some(query.query.clone()),
-                0,
-                0,
-                query.from.id,
-            ),
+            } => {
+                event = Arc::new(Mutex::new(Box::new(query.clone())));
+                (
+                    EventType::InlineQuery,
+                    Some(query.query.clone()),
+                    0,
+                    0,
+                    query.from.id,
+                )
+            }
             TGUpdate {
                 chosen_inline_result: Some(result),
                 ..
-            } => (
-                EventType::ChosenInlineResult,
-                Some(result.query.clone()),
-                0,
-                0,
-                result.from.id,
-            ),
+            } => {
+                event = Arc::new(Mutex::new(Box::new(result.clone())));
+                (
+                    EventType::ChosenInlineResult,
+                    Some(result.query.clone()),
+                    0,
+                    0,
+                    result.from.id,
+                )
+            }
             TGUpdate {
                 callback_query: Some(query),
                 ..
-            } => (
-                EventType::CallbackQuery,
-                query.data.clone(),
-                query.message.as_ref().unwrap().chat.id,
-                query.message.as_ref().unwrap().message_id,
-                query.from.id,
-            ),
+            } => {
+                event = Arc::new(Mutex::new(Box::new(query.clone())));
+                (
+                    EventType::CallbackQuery,
+                    query.data.clone(),
+                    query.message.as_ref().unwrap().chat.id,
+                    query.message.as_ref().unwrap().message_id,
+                    query.from.id,
+                )
+            }
 
-            _ => (EventType::Unknown, None, 0, 0, 0),
+            _ => {
+                event = Arc::new(Mutex::new(Box::new(0)));
+                (EventType::Unknown, None, 0, 0, 0)
+            }
         };
         UnifyedContext {
             text: text.clone().unwrap_or("".to_owned()),
@@ -268,6 +329,7 @@ impl UnifyContext for TGUpdate {
             platform: Platform::Telegram,
             data: Arc::new(Mutex::new(Box::new(()))),
             config: config,
+            event: event,
         }
     }
 }

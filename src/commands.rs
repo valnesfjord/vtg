@@ -1,7 +1,7 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
 
-use crate::client::structs::UnifyedContext;
+use crate::client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew};
 
 pub struct Command {
     pub regex: Regex,
@@ -24,11 +24,25 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
 pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
     ctx.send("Pong");
     println!("{:?}", ctx);
+    let data = ctx.get_data::<i32>().unwrap();
+    println!("{:?}", data);
     ctx
 }
 
 pub async fn bye_function(ctx: UnifyedContext) -> UnifyedContext {
     ctx.send("Goodbye");
+    if ctx.r#type == EventType::MessageNew {
+        match ctx.platform {
+            Platform::Telegram => {
+                let event = ctx.get_event::<TGMessage>().unwrap();
+                println!("{:?}", event);
+            }
+            Platform::VK => {
+                let event = ctx.get_event::<VKMessageNew>().unwrap();
+                println!("{:?}", event);
+            }
+        }
+    }
     ctx
 }
 
