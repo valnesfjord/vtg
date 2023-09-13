@@ -3,7 +3,6 @@ use hyper::{
     Body, Client, Method, Request,
 };
 use lazy_static::lazy_static;
-use std::collections::HashMap;
 #[derive(Debug)]
 pub enum HyperRequestError {
     RequestError(hyper::Error),
@@ -23,7 +22,7 @@ lazy_static! {
 pub async fn request(
     url: String,
     access_token: String,
-    body: HashMap<&str, &str>,
+    body: Vec<(&str, &str)>,
 ) -> Result<String, HyperRequestError> {
     let form_body = form_urlencoded::Serializer::new(String::new())
         .extend_pairs(body.iter())

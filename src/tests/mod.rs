@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
     use crate::client::requests::request;
 
@@ -15,11 +14,13 @@ mod tests {
             when.method(POST).path("/test").query_param("test", "true");
             then.status(200).header("content-type", "").body("hello");
         });
-        let mut hmap = HashMap::new();
-        hmap.insert("test", "true");
-        let resp = request(server.url("/test?test=true"), "".to_string(), hmap)
-            .await
-            .unwrap();
+        let resp = request(
+            server.url("/test?test=true"),
+            "".to_string(),
+            vec![("test", "true")],
+        )
+        .await
+        .unwrap();
         mock.assert();
         assert_eq!("hello".to_string(), resp);
     }
