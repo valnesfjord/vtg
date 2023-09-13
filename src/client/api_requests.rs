@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::*;
 pub enum ApiResponse {
     VkResponse(serde_json::Value),
@@ -10,7 +8,7 @@ pub enum ApiResponse {
 pub async fn api_call(
     platform: Platform,
     method: String,
-    params: HashMap<&str, &str>,
+    params: Vec<(&str, &str)>,
     config: &Config,
 ) -> Result<ApiResponse, String> {
     let url = match platform {

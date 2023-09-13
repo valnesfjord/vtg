@@ -2,7 +2,7 @@ pub mod api_requests;
 pub mod requests;
 pub mod structs;
 use requests::*;
-use std::{collections::HashMap, panic, sync::Arc};
+use std::{panic, sync::Arc};
 use structs::*;
 use tokio::{select, sync::Mutex};
 use tokio::{
@@ -16,15 +16,15 @@ pub async fn get_vk_updates(
     tx: &Sender<UnifyedContext>,
     config: &Config,
 ) {
-    let mut req_body = HashMap::new();
-    req_body.insert("act", "a_check");
-    req_body.insert("key", key.as_str());
-    req_body.insert("ts", ts.as_str());
-    req_body.insert("wait", "25");
     let get_updates = request(
         format!("{}", server),
         config.vk_access_token.clone(),
-        req_body,
+        vec![
+            ("act", "a_check"),
+            ("key", key.as_str()),
+            ("ts", ts.as_str()),
+            ("wait", "25"),
+        ],
     )
     .await;
     let updates: VKGetUpdates = serde_json::from_str(
@@ -42,14 +42,11 @@ pub async fn get_vk_updates(
     *ts = new_ts.to_string();
 }
 pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
-    let mut req_body = HashMap::new();
     let vk_group_id = config.vk_group_id.to_string();
-    req_body.insert("group_id", vk_group_id.as_str());
-    req_body.insert("v", "5.131");
     let get_server = request(
         "https://api.vk.com/method/groups.getLongPollServer".to_owned(),
         config.vk_access_token.clone(),
-        req_body,
+        vec![("group_id", vk_group_id.as_str()), ("v", "5.131")],
     )
     .await;
     let server: VKGetServerResponse =
@@ -58,15 +55,14 @@ pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     server
 }
 pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
-    let mut req_body = HashMap::new();
+    let mut req_body = vec![("timeout", "25")];
     let off = offset.to_string();
     if off == "0" {
-        req_body.insert("limit", "1");
+        req_body.push(("limit", "1"));
     } else {
-        req_body.insert("offset", off.as_str());
-        req_body.insert("limit", "100");
+        req_body.push(("offset", off.as_str()));
+        req_body.push(("limit", "100"));
     }
-    req_body.insert("timeout", "25");
     let get_updates = request(
         format!(
             "https://api.telegram.org/{}/getUpdates",

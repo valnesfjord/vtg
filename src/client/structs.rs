@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, future::Future};
 
 use super::api_requests::{api_call, ApiResponse};
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct VKGetServer {
     pub key: String,
     pub server: String,
@@ -160,7 +160,18 @@ impl UnifyedContext {
                     req_body.insert("message", message_str.as_str());
                     req_body.insert("random_id", "0");
                     req_body.insert("v", "5.131");
-                    api_call(Platform::VK, "messages.send".to_string(), req_body, &config).await
+                    api_call(
+                        Platform::VK,
+                        "messages.send".to_string(),
+                        vec![
+                            ("peer_id", peer_id.as_str()),
+                            ("message", message_str.as_str()),
+                            ("random_id", "0"),
+                            ("v", "5.131"),
+                        ],
+                        &config,
+                    )
+                    .await
                 });
             }
             Platform::Telegram => {
@@ -168,13 +179,13 @@ impl UnifyedContext {
                 let config = self.config.clone();
                 let message_str = message.to_owned();
                 tokio::task::spawn(async move {
-                    let mut req_body = HashMap::new();
-                    req_body.insert("chat_id", peer_id.as_str());
-                    req_body.insert("text", message_str.as_str());
                     api_call(
                         Platform::Telegram,
                         "sendMessage".to_string(),
-                        req_body,
+                        vec![
+                            ("chat_id", peer_id.as_str()),
+                            ("text", message_str.as_str()),
+                        ],
                         &config,
                     )
                     .await
@@ -186,7 +197,7 @@ impl UnifyedContext {
         &self,
         platform: Platform,
         method: String,
-        params: HashMap<&str, &str>,
+        params: Vec<(&str, &str)>,
     ) -> ApiResponse {
         api_call(platform, method, params, &self.config)
             .await
