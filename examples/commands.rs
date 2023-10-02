@@ -1,7 +1,7 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
 
-use crate::client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew};
+use vtg::client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew};
 
 pub struct Command {
     pub regex: Regex,

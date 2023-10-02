@@ -12,10 +12,10 @@ hyper = { version = "0.14", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
 form_urlencoded = "1.2.0"
 serde = { version = "1.0", features = ["derive"] }
-regex = "1.9.3"
-regex-automata = "0.3.6"
 lazy_static = "1.4.0"
 rand = "0.8.5"
-async-trait = "0.1.73"
 [dev-dependencies]
+async-trait = "0.1.73"
 httpmock = "0.6"
+regex = "1.9.3"
+regex-automata = "0.3.6"

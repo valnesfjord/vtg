@@ -1,10 +1,10 @@
-use client::{
+use vtg::client::{
     structs::{EventType, MiddlewareChain},
     *,
 };
 use std::env;
-pub mod client;
-use crate::client::structs::{Config, UnifyedContext};
+extern crate vtg;
+use vtg::client::structs::{Config, UnifyedContext};
 mod commands;
 use lazy_static::lazy_static;
 lazy_static! {

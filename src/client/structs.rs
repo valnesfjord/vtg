@@ -124,7 +124,7 @@ pub struct UnifyedContext {
     config: Config,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Platform {
     VK,
     Telegram,
