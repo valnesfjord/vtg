@@ -1,7 +1,10 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
 
-use vtg::client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew};
+use vtg::{
+    client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew},
+    keyboard::KeyboardButton,
+};
 
 pub struct Command {
     pub regex: Regex,
@@ -17,8 +20,20 @@ pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
 }
 
 pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedContext {
-    ctx.send("Hello");
     println!("{:?}", get_potential_matches(ctx.clone().text, caps));
+    ctx.send_with_keyboard(
+        "Hello",
+        vtg::keyboard::Keyboard::new(
+            vec![vec![KeyboardButton {
+                color: Some("positive".to_string()),
+                text: "Посмотреть баланс".to_string(),
+                data: Some("{\"text\": \"balance\"}".to_string()),
+                url: None,
+            }]],
+            true,
+            None,
+        ),
+    );
     ctx
 }
 pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
@@ -62,3 +77,4 @@ pub fn command_vec() -> Vec<Command> {
         },
     ]
 }
+fn main() {}

@@ -1,8 +1,10 @@
 use serde::Deserialize;
 use std::any::Any;
+use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
-use std::{collections::HashMap, future::Future};
+
+use crate::keyboard::{self, Keyboard};
 
 use super::api_requests::{api_call, ApiResponse};
 #[derive(Deserialize, Debug)]
@@ -147,19 +149,15 @@ pub trait UnifyContext {
 pub struct VKNewMessageResponse {
     pub response: i64,
 }
+
 impl UnifyedContext {
     pub fn send(&self, message: &str) {
+        let peer_id = self.peer_id.to_string();
+        let config = self.config.clone();
+        let message_str = message.to_owned();
         match self.platform {
             Platform::VK => {
-                let peer_id = self.peer_id.to_string();
-                let config = self.config.clone();
-                let message_str = message.to_owned();
                 tokio::task::spawn(async move {
-                    let mut req_body = HashMap::new();
-                    req_body.insert("peer_id", peer_id.as_str());
-                    req_body.insert("message", message_str.as_str());
-                    req_body.insert("random_id", "0");
-                    req_body.insert("v", "5.131");
                     api_call(
                         Platform::VK,
                         "messages.send".to_string(),
@@ -172,12 +170,10 @@ impl UnifyedContext {
                         &config,
                     )
                     .await
+                    .unwrap()
                 });
             }
             Platform::Telegram => {
-                let peer_id = self.peer_id.to_string();
-                let config = self.config.clone();
-                let message_str = message.to_owned();
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::Telegram,
@@ -189,6 +185,64 @@ impl UnifyedContext {
                         &config,
                     )
                     .await
+                    .unwrap()
+                });
+            }
+        }
+    }
+    pub fn send_with_keyboard(&self, message: &str, keyboard: Keyboard) {
+        let peer_id = self.peer_id.to_string();
+        let config = self.config.clone();
+        let message_str = message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                let j = serde_json::to_string(&keyboard.vk_buttons).unwrap();
+                println!("{}", j);
+                tokio::task::spawn(async move {
+                    api_call(
+                        Platform::VK,
+                        "messages.send".to_string(),
+                        vec![
+                            ("peer_id", peer_id.as_str()),
+                            ("message", message_str.as_str()),
+                            ("random_id", "0"),
+                            ("v", "5.131"),
+                            ("keyboard", j.as_str()),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap()
+                });
+            }
+            Platform::Telegram => {
+                let j: String;
+                if !keyboard.inline {
+                    j = serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
+                        keyboard: keyboard.tg_buttons,
+                        one_time_keyboard: keyboard.one_time.unwrap(),
+                    })
+                    .unwrap();
+                } else {
+                    j = serde_json::to_string(&keyboard::InlineKeyboardMarkup {
+                        inline_keyboard: keyboard.tg_buttons,
+                    })
+                    .unwrap();
+                }
+                println!("{}", j);
+                tokio::task::spawn(async move {
+                    api_call(
+                        Platform::Telegram,
+                        "sendMessage".to_string(),
+                        vec![
+                            ("chat_id", peer_id.as_str()),
+                            ("text", message_str.as_str()),
+                            ("reply_markup", j.as_str()),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap()
                 });
             }
         }
