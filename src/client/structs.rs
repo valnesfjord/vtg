@@ -55,6 +55,7 @@ pub struct VKMessage {
     pub from_id: i64,
     pub peer_id: i64,
     pub id: i64,
+    pub payload: Option<String>
 }
 
 #[derive(Deserialize, Clone)]
