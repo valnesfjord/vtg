@@ -1,6 +1,7 @@
 pub mod api_requests;
 pub mod requests;
 pub mod structs;
+use log::{debug, info, log_enabled};
 use requests::*;
 use std::{panic, sync::Arc};
 use structs::*;
@@ -34,6 +35,10 @@ pub async fn get_vk_updates(
         ts: ts.clone(),
         updates: vec![],
     });
+    debug!(
+        "[LONGPOLL] [VK] Got {} updates, processing",
+        updates.updates.len()
+    );
     for update in updates.updates {
         let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
@@ -51,7 +56,10 @@ pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     .await;
     let server: VKGetServerResponse =
         serde_json::from_str(get_server.unwrap_or("".to_string()).as_str()).unwrap();
-
+    debug!(
+        "[LONGPOLL] [VK] Got longpoll server: {}",
+        server.response.server
+    );
     server
 }
 pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
@@ -80,6 +88,10 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
         ok: false,
         result: vec![],
     });
+    debug!(
+        "[LONGPOLL] [TELEGRAM] Got {} updates, processing",
+        updates.result.len()
+    );
     for update in updates.result.clone() {
         let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
@@ -88,6 +100,7 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
 }
 
 pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) {
+    info!("Start getting updates...");
     let vk_settings = get_vk_settings(&config).await;
     let mut server = vk_settings.response.server;
     let mut key = vk_settings.response.key;
@@ -102,11 +115,15 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
         tokio::task::spawn(async move {
             loop {
                 if let Some(update) = rx_clone.lock().await.recv().await {
-                    let start_time = Instant::now();
-                    middleware_clone.execute(update).await;
-                    let end_time = Instant::now();
-                    let elapsed_time = end_time.duration_since(start_time);
-                    println!("Время обработки: {:?}", elapsed_time);
+                    if log_enabled!(log::Level::Debug) {
+                        let start_time = Instant::now();
+                        middleware_clone.execute(update).await;
+                        let end_time = Instant::now();
+                        let elapsed_time = end_time.duration_since(start_time);
+                        debug!("Processing time: {:?}", elapsed_time);
+                    } else {
+                        middleware_clone.execute(update).await;
+                    }
                 }
             }
         });

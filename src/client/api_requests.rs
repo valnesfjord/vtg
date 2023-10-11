@@ -1,3 +1,5 @@
+use log::debug;
+
 use super::*;
 pub enum ApiResponse {
     VkResponse(serde_json::Value),
@@ -25,6 +27,7 @@ pub async fn api_call(
     let response = request(url, access_token, params).await;
     match response {
         Ok(response_text) => {
+            debug!("API call response text: {}", response_text);
             let response_json: serde_json::Value =
                 serde_json::from_str(&response_text).map_err(|e| e.to_string())?;
             match platform {

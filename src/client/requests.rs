@@ -3,6 +3,7 @@ use hyper::{
     Body, Client, Method, Request,
 };
 use lazy_static::lazy_static;
+use log::debug;
 #[derive(Debug)]
 pub enum HyperRequestError {
     RequestError(hyper::Error),
@@ -27,6 +28,7 @@ pub async fn request(
     let form_body = form_urlencoded::Serializer::new(String::new())
         .extend_pairs(body.iter())
         .finish();
+    debug!("Request body: {}", form_body);
     let req = Request::builder()
         .method(Method::POST)
         .uri(url)

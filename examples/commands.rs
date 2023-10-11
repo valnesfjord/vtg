@@ -77,4 +77,5 @@ pub fn command_vec() -> Vec<Command> {
         },
     ]
 }
+#[allow(dead_code)]
 fn main() {}

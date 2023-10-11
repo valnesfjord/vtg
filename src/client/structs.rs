@@ -55,16 +55,16 @@ pub struct VKMessage {
     pub from_id: i64,
     pub peer_id: i64,
     pub id: i64,
-    pub payload: Option<String>
+    pub payload: Option<String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGGetUpdates {
     pub ok: bool,
     pub result: Vec<TGUpdate>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGUpdate {
     pub message: Option<TGMessage>,
     pub edited_message: Option<TGMessage>,
@@ -74,7 +74,7 @@ pub struct TGUpdate {
     pub update_id: i64,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGCallbackQuery {
     pub id: String,
     pub from: TGFrom,
@@ -83,14 +83,14 @@ pub struct TGCallbackQuery {
     pub data: Option<String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGChosenInlineResult {
     pub result_id: String,
     pub from: TGFrom,
     pub query: String,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGInlineQuery {
     pub id: String,
     pub from: TGFrom,
