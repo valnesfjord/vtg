@@ -64,7 +64,7 @@ pub struct TGGetUpdates {
     pub result: Vec<TGUpdate>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default)]
 pub struct TGUpdate {
     pub message: Option<TGMessage>,
     pub edited_message: Option<TGMessage>,
@@ -144,7 +144,7 @@ pub enum EventType {
 }
 
 pub trait UnifyContext {
-    fn unify(&self, config: Config) -> UnifyedContext;
+    fn unify(&self, config: &Config) -> UnifyedContext;
 }
 #[derive(Deserialize, Clone, Copy)]
 pub struct VKNewMessageResponse {
@@ -273,7 +273,7 @@ impl UnifyedContext {
 }
 
 impl UnifyContext for VKUpdate {
-    fn unify(&self, config: Config) -> UnifyedContext {
+    fn unify(&self, config: &Config) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
         let (r#type, text, chat_id, message_id, from_id) = match self.object.clone() {
             VKObject::MessageNew(message) => {
@@ -299,20 +299,20 @@ impl UnifyContext for VKUpdate {
         };
         UnifyedContext {
             text: text.clone(),
-            from_id: from_id,
+            from_id,
             peer_id: chat_id,
             id: message_id,
-            r#type: r#type,
+            r#type,
             platform: Platform::VK,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: config,
-            event: event,
+            config: config.to_owned(),
+            event,
         }
     }
 }
 
 impl UnifyContext for TGUpdate {
-    fn unify(&self, config: Config) -> UnifyedContext {
+    fn unify(&self, config: &Config) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
         let (r#type, text, chat_id, message_id, from_id) = match self {
             TGUpdate {
@@ -388,14 +388,14 @@ impl UnifyContext for TGUpdate {
         };
         UnifyedContext {
             text: text.clone().unwrap_or("".to_owned()),
-            from_id: from_id,
+            from_id,
             peer_id: chat_id,
             id: message_id,
-            r#type: r#type,
+            r#type,
             platform: Platform::Telegram,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: config,
-            event: event,
+            config: config.to_owned(),
+            event,
         }
     }
 }
@@ -426,10 +426,13 @@ impl MiddlewareChain {
         ctx
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Config {
     pub vk_access_token: String,
     pub vk_group_id: i64,
     pub vk_api_version: String,
     pub tg_access_token: String,
+    pub port: Option<u16>,
+    pub callback_url: Option<String>,
+    pub secret: Option<String>,
 }

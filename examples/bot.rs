@@ -1,8 +1,8 @@
+use std::env;
 use vtg::client::{
     structs::{EventType, MiddlewareChain},
     *,
 };
-use std::env;
 extern crate vtg;
 use vtg::client::structs::{Config, UnifyedContext};
 mod commands;
@@ -45,6 +45,7 @@ async fn main() {
         vk_group_id: vk_group_id.parse().unwrap(),
         tg_access_token,
         vk_api_version: "5.131".to_owned(),
+        ..Default::default()
     };
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));

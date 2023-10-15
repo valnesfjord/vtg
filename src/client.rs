@@ -40,7 +40,7 @@ pub async fn get_vk_updates(
         updates.updates.len()
     );
     for update in updates.updates {
-        let unified = update.unify(config.clone());
+        let unified = update.unify(config);
         tx.send(unified).await.unwrap();
     }
     let new_ts = ts.parse::<i64>().unwrap() + 1;
@@ -93,7 +93,7 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
         updates.result.len()
     );
     for update in updates.result.clone() {
-        let unified = update.unify(config.clone());
+        let unified = update.unify(&config);
         tx.send(unified).await.unwrap();
         *offset = update.update_id + 1;
     }
