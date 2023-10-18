@@ -19,6 +19,8 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     ctx
 }
 use regex_automata::Input;
+use vtg::server::start_callback_server;
+
 async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {
         return ctx;
@@ -45,11 +47,13 @@ async fn main() {
         vk_group_id: vk_group_id.parse().unwrap(),
         tg_access_token,
         vk_api_version: "5.131".to_owned(),
-        ..Default::default()
+        callback_url: Some("https://6dcd-94-253-109-231.ngrok-free.app".to_string()),
+        port: Some(8080),
+        secret: Some("87411319".to_string())
     };
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
     middleware_chain.add_middleware(|ctx| Box::pin(hears_middleware(ctx)));
 
-    start_longpoll_client(middleware_chain, config).await;
+    start_callback_server(middleware_chain, config).await;
 }

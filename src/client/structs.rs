@@ -27,7 +27,7 @@ pub struct VKGetUpdates {
 #[derive(Deserialize, Clone, Debug)]
 pub struct VKUpdate {
     pub r#type: String,
-    pub object: VKObject,
+    pub object: Option<VKObject>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -276,7 +276,7 @@ impl UnifyContext for VKUpdate {
     fn unify(&self, config: &Config) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
         let (r#type, text, chat_id, message_id, from_id) = match self.object.clone() {
-            VKObject::MessageNew(message) => {
+            Some(VKObject::MessageNew(message)) => {
                 event = Arc::new(Mutex::new(Box::new(message.clone())));
                 (
                     EventType::MessageNew,
@@ -286,7 +286,7 @@ impl UnifyContext for VKUpdate {
                     message.message.from_id,
                 )
             }
-            VKObject::MessageEvent(message) => {
+            Some(VKObject::MessageEvent(message)) => {
                 event = Arc::new(Mutex::new(Box::new(message.clone())));
                 (
                     EventType::CallbackQuery,
@@ -294,6 +294,16 @@ impl UnifyContext for VKUpdate {
                     message.peer_id,
                     message.conversation_message_id,
                     message.user_id,
+                )
+            }
+            None => {
+                event = Arc::new(Mutex::new(Box::new(())));
+                (
+                    EventType::Unknown,
+                    "".to_owned(),
+                    0,
+                    0,
+                    0,
                 )
             }
         };

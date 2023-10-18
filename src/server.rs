@@ -93,10 +93,12 @@ pub async fn start_callback_server(middleware: MiddlewareChain, config: Config) 
             }
         });
     }
+    let mut callback_url = config.callback_url.clone().unwrap();
+    callback_url.push_str("/telegram");
     api_call(
         Platform::Telegram,
         "setWebhook".to_string(),
-        vec![("url", config.callback_url.clone().unwrap().as_str())],
+        vec![("url", callback_url.as_str()), ("secret_token", config.secret.clone().unwrap().as_str())],
         &config,
     )
     .await
