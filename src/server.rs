@@ -1,10 +1,7 @@
 use crate::client::api_requests::api_call;
-use hyper::server::conn::AddrStream;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use log::{debug, error, info, log_enabled};
-use std::cell::{Ref, RefCell};
-use std::rc::Rc;
 use std::sync::Arc;
 use std::{convert::Infallible, net::SocketAddr, process};
 use tokio::signal;

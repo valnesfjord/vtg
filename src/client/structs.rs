@@ -230,7 +230,6 @@ impl UnifyedContext {
                     })
                     .unwrap();
                 }
-                println!("{}", j);
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::Telegram,
@@ -290,7 +289,7 @@ impl UnifyContext for VKUpdate {
                 event = Arc::new(Mutex::new(Box::new(message.clone())));
                 (
                     EventType::CallbackQuery,
-                    Some(message.payload.clone()).unwrap_or("".to_owned()),
+                    message.payload.clone(),
                     message.peer_id,
                     message.conversation_message_id,
                     message.user_id,
@@ -417,6 +416,11 @@ pub struct MiddlewareChain {
     middlewares: Vec<Middleware>,
 }
 
+impl Default for MiddlewareChain {
+    fn default() -> Self {
+        MiddlewareChain::new()
+    }
+}
 impl MiddlewareChain {
     pub fn new() -> Self {
         MiddlewareChain {

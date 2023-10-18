@@ -1,8 +1,6 @@
 use std::env;
-use vtg::client::{
-    structs::{EventType, MiddlewareChain},
-    *,
-};
+use vtg::client::{start_longpoll_client, structs::{EventType, MiddlewareChain}};
+
 extern crate vtg;
 use vtg::client::structs::{Config, UnifyedContext};
 mod commands;
@@ -19,7 +17,6 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     ctx
 }
 use regex_automata::Input;
-use vtg::server::start_callback_server;
 
 async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {
@@ -39,6 +36,8 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 }
 #[tokio::main]
 async fn main() {
+    env::set_var("RUST_LOG", "vtg,deformation_bot");
+    env_logger::init();
     let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
     let vk_group_id = env::var("VK_GROUP_ID").unwrap();
     let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap();
@@ -47,13 +46,11 @@ async fn main() {
         vk_group_id: vk_group_id.parse().unwrap(),
         tg_access_token,
         vk_api_version: "5.131".to_owned(),
-        callback_url: Some("https://6dcd-94-253-109-231.ngrok-free.app".to_string()),
-        port: Some(8080),
-        secret: Some("87411319".to_string())
+        ..Default::default()
     };
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
     middleware_chain.add_middleware(|ctx| Box::pin(hears_middleware(ctx)));
 
-    start_callback_server(middleware_chain, config).await;
+    start_longpoll_client(middleware_chain, config).await;
 }

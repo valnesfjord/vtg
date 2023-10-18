@@ -45,6 +45,6 @@ pub async fn request(
     let bytes = hyper::body::to_bytes(res.into_body())
         .await
         .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
-    Ok(String::from_utf8(bytes.to_vec())
-        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?)
+    String::from_utf8(bytes.to_vec())
+        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))
 }

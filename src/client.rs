@@ -12,17 +12,17 @@ use tokio::{
 };
 pub async fn get_vk_updates(
     server: &mut String,
-    key: &mut String,
+    key: &mut str,
     ts: &mut String,
     tx: &Sender<UnifyedContext>,
     config: &Config,
 ) {
     let get_updates = request(
-        format!("{}", server),
+        server.to_string(),
         config.vk_access_token.clone(),
         vec![
             ("act", "a_check"),
-            ("key", key.as_str()),
+            ("key", key),
             ("ts", ts.as_str()),
             ("wait", "25"),
         ],
@@ -93,7 +93,7 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
         updates.result.len()
     );
     for update in updates.result.clone() {
-        let unified = update.unify(&config);
+        let unified = update.unify(config);
         tx.send(unified).await.unwrap();
         *offset = update.update_id + 1;
     }
