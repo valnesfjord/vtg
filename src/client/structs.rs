@@ -56,6 +56,10 @@ pub struct VKMessage {
     pub peer_id: i64,
     pub id: i64,
     pub payload: Option<String>,
+    pub fwd_messages: Option<Vec<VKMessage>>,
+    pub reply_message: Option<Box<VKMessage>>,
+    pub ref_: Option<String>,
+    pub ref_source: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -103,6 +107,7 @@ pub struct TGMessage {
     pub from: TGFrom,
     pub chat: TGChat,
     pub message_id: i64,
+    pub reply_to_message: Option<Box<TGMessage>>,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]
@@ -161,7 +166,7 @@ impl UnifyedContext {
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::VK,
-                        "messages.send".to_string(),
+                        "messages.send",
                         vec![
                             ("peer_id", peer_id.as_str()),
                             ("message", message_str.as_str()),
@@ -178,7 +183,7 @@ impl UnifyedContext {
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::Telegram,
-                        "sendMessage".to_string(),
+                        "sendMessage",
                         vec![
                             ("chat_id", peer_id.as_str()),
                             ("text", message_str.as_str()),
@@ -202,7 +207,7 @@ impl UnifyedContext {
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::VK,
-                        "messages.send".to_string(),
+                        "messages.send",
                         vec![
                             ("peer_id", peer_id.as_str()),
                             ("message", message_str.as_str()),
@@ -217,23 +222,22 @@ impl UnifyedContext {
                 });
             }
             Platform::Telegram => {
-                let j: String;
-                if !keyboard.inline {
-                    j = serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
+                let j: String = if !keyboard.inline {
+                    serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
                         keyboard: keyboard.tg_buttons,
                         one_time_keyboard: keyboard.one_time.unwrap(),
                     })
-                    .unwrap();
+                    .unwrap()
                 } else {
-                    j = serde_json::to_string(&keyboard::InlineKeyboardMarkup {
+                    serde_json::to_string(&keyboard::InlineKeyboardMarkup {
                         inline_keyboard: keyboard.tg_buttons,
                     })
-                    .unwrap();
-                }
+                    .unwrap()
+                };
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::Telegram,
-                        "sendMessage".to_string(),
+                        "sendMessage",
                         vec![
                             ("chat_id", peer_id.as_str()),
                             ("text", message_str.as_str()),
@@ -250,7 +254,7 @@ impl UnifyedContext {
     pub async fn api_call(
         &self,
         platform: Platform,
-        method: String,
+        method: &str,
         params: Vec<(&str, &str)>,
     ) -> ApiResponse {
         api_call(platform, method, params, &self.config)
@@ -297,13 +301,7 @@ impl UnifyContext for VKUpdate {
             }
             None => {
                 event = Arc::new(Mutex::new(Box::new(())));
-                (
-                    EventType::Unknown,
-                    "".to_owned(),
-                    0,
-                    0,
-                    0,
-                )
+                (EventType::Unknown, "".to_owned(), 0, 0, 0)
             }
         };
         UnifyedContext {
@@ -441,12 +439,17 @@ impl MiddlewareChain {
     }
 }
 #[derive(Debug, Clone, Default)]
+pub struct CallbackSettings {
+    pub port: u16,
+    pub callback_url: String,
+    pub secret: String,
+    pub path: String,
+}
+#[derive(Debug, Clone, Default)]
 pub struct Config {
     pub vk_access_token: String,
     pub vk_group_id: i64,
     pub vk_api_version: String,
     pub tg_access_token: String,
-    pub port: Option<u16>,
-    pub callback_url: Option<String>,
-    pub secret: Option<String>,
+    pub callback: Option<CallbackSettings>,
 }

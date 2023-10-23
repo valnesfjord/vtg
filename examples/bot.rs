@@ -36,7 +36,7 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 }
 #[tokio::main]
 async fn main() {
-    env::set_var("RUST_LOG", "vtg,deformation_bot");
+    env::set_var("RUST_LOG", "vtg");
     env_logger::init();
     let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
     let vk_group_id = env::var("VK_GROUP_ID").unwrap();

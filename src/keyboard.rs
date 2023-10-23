@@ -29,6 +29,7 @@ impl Keyboard {
                 inline,
                 one_time,
                 vk_buttons: VKKeyboard {
+                    #[allow(clippy::unnecessary_unwrap)]
                     one_time: one_time.unwrap(),
                     inline: false,
                     buttons: buttons

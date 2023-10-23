@@ -6,12 +6,10 @@ use vtg::{
     keyboard::KeyboardButton,
 };
 
+type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
 pub struct Command {
     pub regex: Regex,
-    pub function: fn(
-        UnifyedContext,
-        Captures,
-    ) -> Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>,
+    pub function: fn(UnifyedContext, Captures) -> CommandFunction,
 }
 pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
     caps.iter()

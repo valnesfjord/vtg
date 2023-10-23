@@ -9,7 +9,7 @@ pub enum ApiResponse {
 
 pub async fn api_call(
     platform: Platform,
-    method: String,
+    method: &str,
     params: Vec<(&str, &str)>,
     config: &Config,
 ) -> Result<ApiResponse, String> {
