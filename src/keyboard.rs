@@ -17,10 +17,28 @@ pub struct VKKeyboard {
 #[derive(Serialize, Clone)]
 pub struct KeyboardButton {
     pub text: String,
-    pub color: Option<String>,
+    pub color: Color,
     pub data: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub enum Color {
+    Negative,
+    Positive,
+    Secondary,
+    Primary,
+}
+impl Color {
+    fn as_string(&self) -> String {
+        match self {
+            Color::Negative => "negative".to_string(),
+            Color::Positive => "positive".to_string(),
+            Color::Secondary => "secondary".to_string(),
+            Color::Primary => "primary".to_string(),
+        }
+    }
 }
 impl Keyboard {
     pub fn new(buttons: Vec<Vec<KeyboardButton>>, inline: bool, one_time: Option<bool>) -> Self {
@@ -47,7 +65,7 @@ impl Keyboard {
                                         ),
                                         label: Some(b.text.clone()),
                                     },
-                                    color: b.color.clone(),
+                                    color: Some(b.color.clone().as_string()),
                                 })
                                 .collect()
                         })
@@ -88,7 +106,7 @@ impl Keyboard {
                                     ),
                                     label: Some(b.text.clone()),
                                 },
-                                color: b.color.clone(),
+                                color: Some(b.color.clone().as_string()),
                             })
                             .collect()
                     })

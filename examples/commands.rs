@@ -3,7 +3,7 @@ use std::{future::Future, pin::Pin};
 
 use vtg::{
     client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew},
-    keyboard::KeyboardButton,
+    keyboard::{Color, KeyboardButton},
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
@@ -23,7 +23,7 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
         "Hello",
         vtg::keyboard::Keyboard::new(
             vec![vec![KeyboardButton {
-                color: Some("positive".to_string()),
+                color: Color::Positive,
                 text: "Посмотреть баланс".to_string(),
                 data: Some("{\"text\": \"balance\"}".to_string()),
                 url: None,
