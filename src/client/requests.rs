@@ -21,8 +21,8 @@ lazy_static! {
     };
 }
 pub async fn request(
-    url: String,
-    access_token: String,
+    url: &str,
+    access_token: &str,
     body: Vec<(&str, &str)>,
 ) -> Result<String, HyperRequestError> {
     let form_body = form_urlencoded::Serializer::new(String::new())
@@ -45,6 +45,5 @@ pub async fn request(
     let bytes = hyper::body::to_bytes(res.into_body())
         .await
         .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
-    String::from_utf8(bytes.to_vec())
-        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))
+    String::from_utf8(bytes.to_vec()).map_err(|e| HyperRequestError::ResponseError(e.to_string()))
 }

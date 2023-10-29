@@ -11,30 +11,28 @@ use tokio::{
     time::Instant,
 };
 pub async fn get_vk_updates(
-    server: &mut String,
+    server: &mut str,
     key: &mut str,
     ts: &mut String,
     tx: &Sender<UnifyedContext>,
     config: &Config,
 ) {
     let get_updates = request(
-        server.to_string(),
-        config.vk_access_token.clone(),
+        server,
+        &config.vk_access_token.clone(),
         vec![
             ("act", "a_check"),
             ("key", key),
-            ("ts", ts.as_str()),
+            ("ts", &ts),
             ("wait", "25"),
         ],
     )
     .await;
-    let updates: VKGetUpdates = serde_json::from_str(
-        get_updates.unwrap_or("".to_string()).as_str(),
-    )
-    .unwrap_or(VKGetUpdates {
-        ts: ts.clone(),
-        updates: vec![],
-    });
+    let updates: VKGetUpdates = serde_json::from_str(&get_updates.unwrap_or("".to_string()))
+        .unwrap_or(VKGetUpdates {
+            ts: ts.clone(),
+            updates: vec![],
+        });
     debug!(
         "[LONGPOLL] [VK] Got {} updates, processing",
         updates.updates.len()
@@ -49,13 +47,13 @@ pub async fn get_vk_updates(
 pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     let vk_group_id = config.vk_group_id.to_string();
     let get_server = request(
-        "https://api.vk.com/method/groups.getLongPollServer".to_owned(),
-        config.vk_access_token.clone(),
-        vec![("group_id", vk_group_id.as_str()), ("v", "5.131")],
+        "https://api.vk.com/method/groups.getLongPollServer",
+        &config.vk_access_token.clone(),
+        vec![("group_id", &vk_group_id), ("v", "5.131")],
     )
     .await;
     let server: VKGetServerResponse =
-        serde_json::from_str(get_server.unwrap_or("".to_string()).as_str()).unwrap();
+        serde_json::from_str(&get_server.unwrap_or("".to_string())).unwrap();
     debug!(
         "[LONGPOLL] [VK] Got longpoll server: {}",
         server.response.server
@@ -68,26 +66,24 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
     if off == "0" {
         req_body.push(("limit", "1"));
     } else {
-        req_body.push(("offset", off.as_str()));
+        req_body.push(("offset", &off));
         req_body.push(("limit", "100"));
     }
     let get_updates = request(
-        format!(
+        &format!(
             "https://api.telegram.org/{}/getUpdates",
             config.tg_access_token.clone()
         ),
-        "".to_owned(),
+        "",
         req_body,
     )
     .await;
 
-    let updates: TGGetUpdates = serde_json::from_str(
-        get_updates.unwrap_or("".to_string()).as_str(),
-    )
-    .unwrap_or(TGGetUpdates {
-        ok: false,
-        result: vec![],
-    });
+    let updates: TGGetUpdates = serde_json::from_str(&get_updates.unwrap_or("".to_string()))
+        .unwrap_or(TGGetUpdates {
+            ok: false,
+            result: vec![],
+        });
     debug!(
         "[LONGPOLL] [TELEGRAM] Got {} updates, processing",
         updates.result.len()

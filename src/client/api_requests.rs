@@ -24,7 +24,7 @@ pub async fn api_call(
         Platform::VK => config.vk_access_token.clone(),
         Platform::Telegram => "".to_owned(),
     };
-    let response = request(url, access_token, params).await;
+    let response = request(&url, &access_token, params).await;
     match response {
         Ok(response_text) => {
             debug!("API call response text: {}", response_text);
