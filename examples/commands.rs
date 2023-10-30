@@ -1,9 +1,10 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
-
-use vtg::{
-    client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew},
+use vtg::structs::{
+    context::{EventType, Platform, UnifyedContext},
     keyboard::{Color, KeyboardButton},
+    tg::TGMessage,
+    vk::VKMessageNew,
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
@@ -21,7 +22,7 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
     println!("{:?}", get_potential_matches(ctx.clone().text, caps));
     ctx.send_with_keyboard(
         "Hello",
-        vtg::keyboard::Keyboard::new(
+        vtg::structs::keyboard::Keyboard::new(
             vec![vec![KeyboardButton {
                 color: Color::Positive,
                 text: "Посмотреть баланс".to_string(),

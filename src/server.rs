@@ -1,7 +1,9 @@
 use crate::client::api_requests::api_call;
-use crate::client::structs::{
-    Config, MiddlewareChain, Platform, TGUpdate, UnifyContext, UnifyedContext, VKUpdate,
-};
+use crate::structs::config::Config;
+use crate::structs::context::{Platform, UnifyContext, UnifyedContext};
+use crate::structs::middleware::MiddlewareChain;
+use crate::structs::tg::TGUpdate;
+use crate::structs::vk::VKUpdate;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use log::{debug, error, info, log_enabled};

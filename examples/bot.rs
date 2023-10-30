@@ -1,8 +1,6 @@
 use std::env;
-use vtg::client::{start_longpoll_client, structs::{EventType, MiddlewareChain}};
-
+use vtg::client::start_longpoll_client;
 extern crate vtg;
-use vtg::client::structs::{Config, UnifyedContext};
 mod commands;
 use lazy_static::lazy_static;
 lazy_static! {
@@ -17,6 +15,11 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     ctx
 }
 use regex_automata::Input;
+use vtg::structs::{
+    config::Config,
+    context::{EventType, UnifyedContext},
+    middleware::MiddlewareChain,
+};
 
 async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {

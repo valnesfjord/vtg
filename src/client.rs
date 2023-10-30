@@ -1,15 +1,19 @@
 pub mod api_requests;
 pub mod requests;
-pub mod structs;
 use log::{debug, info, log_enabled};
 use requests::*;
 use std::{panic, sync::Arc};
-use structs::*;
 use tokio::{select, sync::Mutex};
 use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
     time::Instant,
 };
+
+use crate::structs::config::Config;
+use crate::structs::context::{UnifyContext, UnifyedContext};
+use crate::structs::middleware::MiddlewareChain;
+use crate::structs::tg::TGGetUpdates;
+use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
 pub async fn get_vk_updates(
     server: &mut str,
     key: &mut str,

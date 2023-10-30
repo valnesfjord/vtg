@@ -1,5 +1,7 @@
 use log::debug;
 
+use crate::structs::context::Platform;
+
 use super::*;
 pub enum ApiResponse {
     VkResponse(serde_json::Value),
