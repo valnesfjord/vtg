@@ -1,14 +1,16 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
+use vtg::structs::{
+    context::{EventType, Platform, UnifyedContext},
+    keyboard::{Color, KeyboardButton},
+    tg::TGMessage,
+    vk::VKMessageNew,
+};
 
-use crate::client::structs::{EventType, Platform, TGMessage, UnifyedContext, VKMessageNew};
-
+type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
 pub struct Command {
     pub regex: Regex,
-    pub function: fn(
-        UnifyedContext,
-        Captures,
-    ) -> Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>,
+    pub function: fn(UnifyedContext, Captures) -> CommandFunction,
 }
 pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
     caps.iter()
@@ -17,8 +19,20 @@ pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
 }
 
 pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedContext {
-    ctx.send("Hello");
     println!("{:?}", get_potential_matches(ctx.clone().text, caps));
+    ctx.send_with_keyboard(
+        "Hello",
+        vtg::structs::keyboard::Keyboard::new(
+            vec![vec![KeyboardButton {
+                color: Color::Positive,
+                text: "Посмотреть баланс".to_string(),
+                data: Some("{\"text\": \"balance\"}".to_string()),
+                url: None,
+            }]],
+            true,
+            None,
+        ),
+    );
     ctx
 }
 pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
@@ -62,3 +76,5 @@ pub fn command_vec() -> Vec<Command> {
         },
     ]
 }
+#[allow(dead_code)]
+fn main() {}

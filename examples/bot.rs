@@ -1,10 +1,6 @@
-use client::{
-    structs::{EventType, MiddlewareChain},
-    *,
-};
 use std::env;
-pub mod client;
-use crate::client::structs::{Config, UnifyedContext};
+use vtg::client::start_longpoll_client;
+extern crate vtg;
 mod commands;
 use lazy_static::lazy_static;
 lazy_static! {
@@ -19,6 +15,12 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     ctx
 }
 use regex_automata::Input;
+use vtg::structs::{
+    config::Config,
+    context::{EventType, UnifyedContext},
+    middleware::MiddlewareChain,
+};
+
 async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {
         return ctx;
@@ -37,6 +39,8 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 }
 #[tokio::main]
 async fn main() {
+    env::set_var("RUST_LOG", "vtg");
+    env_logger::init();
     let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
     let vk_group_id = env::var("VK_GROUP_ID").unwrap();
     let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap();
@@ -45,6 +49,7 @@ async fn main() {
         vk_group_id: vk_group_id.parse().unwrap(),
         tg_access_token,
         vk_api_version: "5.131".to_owned(),
+        ..Default::default()
     };
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
