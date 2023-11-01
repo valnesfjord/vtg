@@ -1,3 +1,4 @@
+pub mod attachments;
 pub mod config;
 pub mod context;
 pub mod keyboard;
