@@ -1,5 +1,8 @@
 use std::env;
-use vtg::client::start_longpoll_client;
+use vtg::{
+    client::start_longpoll_client,
+    structs::{context::Platform, vk_attachments::Attachment},
+};
 extern crate vtg;
 mod commands;
 use lazy_static::lazy_static;
@@ -12,6 +15,15 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
         return ctx;
     }
     ctx.set_data(54);
+    if ctx.platform == Platform::VK {
+        let attachments = ctx.get_attachments::<Attachment>().unwrap_or_default();
+        println!("{:?}", attachments);
+    } else {
+        let attachments = ctx
+            .get_attachments::<vtg::structs::tg_attachments::Attachment>()
+            .unwrap_or_default();
+        println!("{:?}", attachments);
+    }
     ctx
 }
 use regex_automata::Input;

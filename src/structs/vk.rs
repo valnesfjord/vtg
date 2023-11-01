@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use super::config::Config;
 use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
+use super::vk_attachments::{unify_attachments, Attachment};
 
 #[derive(Deserialize, Debug)]
 pub struct VKGetServer {
@@ -58,12 +59,13 @@ pub struct VKMessage {
     pub reply_message: Option<Box<VKMessage>>,
     pub ref_: Option<String>,
     pub ref_source: Option<String>,
+    pub attachments: Option<Vec<Attachment>>,
 }
 
 impl UnifyContext for VKUpdate {
     fn unify(&self, config: &Config) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
-        let (r#type, text, chat_id, message_id, from_id) = match self.object.clone() {
+        let (r#type, text, chat_id, message_id, from_id, attachments) = match self.object.clone() {
             Some(VKObject::MessageNew(message)) => {
                 event = Arc::new(Mutex::new(Box::new(message.clone())));
                 (
@@ -72,6 +74,7 @@ impl UnifyContext for VKUpdate {
                     message.message.peer_id,
                     message.message.id,
                     message.message.from_id,
+                    unify_attachments(Some(message.message)),
                 )
             }
             Some(VKObject::MessageEvent(message)) => {
@@ -82,11 +85,19 @@ impl UnifyContext for VKUpdate {
                     message.peer_id,
                     message.conversation_message_id,
                     message.user_id,
+                    unify_attachments(None),
                 )
             }
             None => {
                 event = Arc::new(Mutex::new(Box::new(())));
-                (EventType::Unknown, "".to_owned(), 0, 0, 0)
+                (
+                    EventType::Unknown,
+                    "".to_owned(),
+                    0,
+                    0,
+                    0,
+                    unify_attachments(None),
+                )
             }
         };
         UnifyedContext {
@@ -99,6 +110,7 @@ impl UnifyContext for VKUpdate {
             data: Arc::new(Mutex::new(Box::new(()))),
             config: config.to_owned(),
             event,
+            attachments,
         }
     }
 }

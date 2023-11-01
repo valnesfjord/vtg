@@ -18,6 +18,7 @@ pub struct UnifyedContext {
     pub platform: Platform,
     pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    pub attachments: Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>>,
     pub(crate) config: Config,
 }
 
@@ -161,5 +162,13 @@ impl UnifyedContext {
     pub fn get_event<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
         let event = self.event.lock().unwrap();
         event.downcast_ref::<T>().cloned()
+    }
+    pub fn get_attachments<T: Any + Send + Sync + Clone>(&self) -> Option<Vec<T>> {
+        let attachments = self.attachments.lock().unwrap();
+        let result: Option<Vec<T>> = attachments
+            .iter()
+            .map(|attachment| attachment.downcast_ref::<T>().cloned())
+            .collect();
+        result
     }
 }

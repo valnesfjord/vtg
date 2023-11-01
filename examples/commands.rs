@@ -5,6 +5,7 @@ use vtg::structs::{
     keyboard::{Color, KeyboardButton},
     tg::TGMessage,
     vk::VKMessageNew,
+    vk_attachments::Attachment,
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
