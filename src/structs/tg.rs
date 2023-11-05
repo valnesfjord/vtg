@@ -30,6 +30,7 @@ pub struct TGCallbackQuery {
     pub message: Option<TGMessage>,
     pub chat_instance: String,
     pub data: Option<String>,
+    pub inline_message_id: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -37,6 +38,7 @@ pub struct TGChosenInlineResult {
     pub result_id: String,
     pub from: TGFrom,
     pub query: String,
+    pub inline_message_id: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -44,6 +46,8 @@ pub struct TGInlineQuery {
     pub id: String,
     pub from: TGFrom,
     pub query: String,
+    pub offset: String,
+    pub chat_type: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -108,14 +112,27 @@ pub struct TGUser {
     pub language_code: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGFrom {
     pub id: i64,
+    pub is_bot: bool,
+    pub first_name: String,
+    pub last_name: Option<String>,
+    pub username: Option<String>,
+    pub language_code: Option<String>,
+    pub is_premium: Option<bool>,
+    pub added_to_attachment_menu: Option<bool>,
 }
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGChat {
     pub id: i64,
+    pub r#type: String,
+    pub title: Option<String>,
+    pub username: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub is_forum: Option<bool>,
 }
 
 impl UnifyContext for TGUpdate {

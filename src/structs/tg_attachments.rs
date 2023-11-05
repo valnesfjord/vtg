@@ -195,7 +195,7 @@ pub fn unify_attachments(
         return Arc::new(Mutex::new(Vec::new()));
     }
     let message = message.unwrap();
-    let attachments: Vec<Box<dyn Any + Send + Sync>> = vec![Box::new(Attachment {
+    let attachments: Vec<Box<dyn Any + Send + Sync>> = vec![Box::new(TGAttachment {
         audio: message.audio,
         document: message.document,
         photo: message.photo,
@@ -212,7 +212,7 @@ pub fn unify_attachments(
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Attachment {
+pub struct TGAttachment {
     pub audio: Option<Audio>,
     pub document: Option<Document>,
     pub photo: Option<Vec<PhotoSize>>,

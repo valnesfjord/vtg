@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::vk::VKMessage;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct Attachment {
+pub struct VKAttachment {
     pub r#type: String,
     pub photo: Option<PhotoAttachment>,
     pub video: Option<VideoAttachment>,
@@ -133,7 +133,7 @@ pub struct WallAttachment {
     pub date: i64,
     pub post_type: String,
     pub text: String,
-    pub attachments: Vec<Attachment>,
+    pub attachments: Vec<VKAttachment>,
     pub comments: Comments,
     pub likes: Likes,
     pub reposts: Reposts,

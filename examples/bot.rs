@@ -1,7 +1,7 @@
 use std::env;
 use vtg::{
     client::start_longpoll_client,
-    structs::{context::Platform, vk_attachments::Attachment},
+    structs::{context::Platform, tg_attachments::TGAttachment, vk_attachments::VKAttachment},
 };
 extern crate vtg;
 mod commands;
@@ -16,12 +16,10 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     }
     ctx.set_data(54);
     if ctx.platform == Platform::VK {
-        let attachments = ctx.get_attachments::<Attachment>().unwrap_or_default();
+        let attachments = ctx.get_attachments::<VKAttachment>().unwrap_or_default();
         println!("{:?}", attachments);
     } else {
-        let attachments = ctx
-            .get_attachments::<vtg::structs::tg_attachments::Attachment>()
-            .unwrap_or_default();
+        let attachments = ctx.get_attachments::<TGAttachment>().unwrap_or_default();
         println!("{:?}", attachments);
     }
     ctx

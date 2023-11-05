@@ -1,13 +1,11 @@
-use crate::client::requests::request;
+use crate::client::{requests::{request, file_request}, api_requests::api_call};
 
 use httpmock::prelude::*;
+use tokio::fs::File;
 
 #[tokio::test]
 async fn requests() {
-    // Start a lightweight mock server.
     let server = MockServer::start();
-
-    // Create a mock on the server.
     let mock = server.mock(|when, then| {
         when.method(POST).path("/test").query_param("test", "true");
         then.status(200).header("content-type", "").body("hello");
@@ -18,3 +16,4 @@ async fn requests() {
     mock.assert();
     assert_eq!("hello".to_string(), resp);
 }
+

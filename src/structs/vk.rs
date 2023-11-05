@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use super::config::Config;
 use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
-use super::vk_attachments::{unify_attachments, Attachment};
+use super::vk_attachments::{unify_attachments, VKAttachment};
 
 #[derive(Deserialize, Debug)]
 pub struct VKGetServer {
@@ -59,7 +59,7 @@ pub struct VKMessage {
     pub reply_message: Option<Box<VKMessage>>,
     pub ref_: Option<String>,
     pub ref_source: Option<String>,
-    pub attachments: Option<Vec<Attachment>>,
+    pub attachments: Option<Vec<VKAttachment>>,
 }
 
 impl UnifyContext for VKUpdate {
