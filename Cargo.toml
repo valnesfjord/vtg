@@ -16,7 +16,6 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 log = "0.4"
 mime_guess = "2.0.3"
-streamer = {version = "0.1.2", features = ["hyper"]}
 [dev-dependencies]
 async-trait = "0.1.73"
 httpmock = "0.6"

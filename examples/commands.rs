@@ -1,5 +1,5 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
-use std::{fs::File, future::Future, pin::Pin};
+use std::{fs::File, future::Future, path::Path, pin::Pin};
 use tokio::io::AsyncReadExt;
 use vtg::{
     client::{
@@ -69,7 +69,7 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
             .as_str()
             .unwrap()
             .replace('\\', ""),
-        File::open("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.jpg").unwrap(),
+        Path::new("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.jpg"),
     )
     .await
     .unwrap();
