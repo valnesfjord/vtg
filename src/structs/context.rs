@@ -1,12 +1,17 @@
 use serde::Deserialize;
+use serde_json::{Value};
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
+use crate::client::requests::{files_request, File};
 use crate::structs::keyboard::{self, Keyboard};
 
-use crate::client::api_requests::{api_call, ApiResponse};
+use crate::client::api_requests::api_call;
+use crate::structs::upload::VKPhotoGetUploadServerResponse;
+use crate::upload::{send_tg_photo, upload_vk_message_photos};
 
 use super::config::Config;
+use super::upload::{VKMessagePhotoResponse, VKMessagePhotoUploaded};
 
 #[derive(Debug, Clone)]
 pub struct UnifyedContext {
@@ -141,12 +146,47 @@ impl UnifyedContext {
             }
         }
     }
+    pub async fn send_file_photos(&self, message: &str, photos: Vec<File>) {
+        let peer_id = self.peer_id;
+        let config = self.config.clone();
+        let message_str = message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                tokio::task::spawn(async move {
+                    api_call(
+                        Platform::VK,
+                        "messages.send",
+                        vec![
+                            ("peer_id", &peer_id.to_string()),
+                            ("message", &message_str),
+                            ("random_id", "0"),
+                            ("v", "5.131"),
+                            (
+                                "attachment",
+                                &upload_vk_message_photos(photos, &config, peer_id)
+                                    .await
+                                    .unwrap(),
+                            ),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap();
+                });
+            }
+            Platform::Telegram => {
+                tokio::task::spawn(async move {
+                    send_tg_photo(photos, &config, peer_id, message_str.as_str()).await;
+                });
+            }
+        }
+    }
     pub async fn api_call(
         &self,
         platform: Platform,
         method: &str,
         params: Vec<(&str, &str)>,
-    ) -> ApiResponse {
+    ) -> Value {
         api_call(platform, method, params, &self.config)
             .await
             .unwrap()

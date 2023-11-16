@@ -4,11 +4,9 @@ use hyper::{
 };
 use lazy_static::lazy_static;
 use log::debug;
-use std::{fs, io::Read, path::Path};
-use std::{
-    fs::File,
-    io::{self, Write},
-};
+use rand::distributions::Alphanumeric;
+use rand::Rng;
+use std::io::{self, Write};
 #[derive(Debug)]
 pub enum HyperRequestError {
     RequestError(hyper::Error),
@@ -52,58 +50,69 @@ pub async fn request(
         .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
     String::from_utf8(bytes.to_vec()).map_err(|e| HyperRequestError::ResponseError(e.to_string()))
 }
-use mime_guess::from_path;
-use rand::distributions::Alphanumeric;
-use rand::Rng;
 
-pub async fn file_request(
+#[derive(Clone, Debug)]
+pub struct File {
+    pub filename: String,
+    pub content: Vec<u8>,
+}
+pub async fn files_request(
     url: &str,
-    file_path: &Path,
+    files: &Vec<File>,
+    data: Option<Vec<(&str, &str)>>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let boundary: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
         .map(char::from)
         .collect();
-    println!("Boundary: {}", boundary);
-    let mut file = image_data(file_path, &boundary).expect("Error while reading file");
-    write!(file, "--").unwrap();
-    debug!("[FILE] Request body len: {}", file.len());
+    let mut body = vec![];
+    let query = match data {
+        Some(data) => {
+            "?".to_owned()
+                + &form_urlencoded::Serializer::new(String::new())
+                    .extend_pairs(data)
+                    .finish()
+        }
+        None => String::new(),
+    };
+    for f in files {
+        let file = file_data(f.clone(), &boundary).expect("Error while reading file");
+        body.extend(file);
+        body.extend_from_slice(b"\r\n--");
+        body.extend_from_slice(boundary.as_bytes());
+    }
+    body.extend_from_slice(b"--");
+    debug!("[FILE] Request body len: {}", body.len());
     let req = Request::builder()
         .method(Method::POST)
-        .uri(url)
+        .uri(url.to_owned() + &query)
         .header(
             CONTENT_TYPE,
             format!("multipart/form-data; boundary={}", boundary),
         )
-        .body(file.into())
+        .body(body.into())
         .unwrap();
-    println!("Request: {:?}", req);
     let res = CLIENT.request(req).await?;
+    println!("{:?}", res);
     let body = hyper::body::to_bytes(res.into_body()).await?;
     let body_str = String::from_utf8(body.to_vec())?;
+    println!("{:?}", body_str);
 
     Ok(body_str)
 }
 
-fn image_data(file_path: &Path, boundary: &str) -> io::Result<Vec<u8>> {
-    let mut f = File::open(file_path)?;
-    let mut file_data = vec![];
-    f.read_to_end(&mut file_data).unwrap();
+fn file_data(file: File, boundary: &str) -> io::Result<Vec<u8>> {
     let mut data = Vec::new();
-    let filename = file_path.file_name().unwrap().to_str().unwrap();
+    let filename = file.filename;
     write!(data, "--{}\r\n", boundary)?;
-    let mime_type = from_path(file_path).first_or_octet_stream();
     write!(
         data,
-        "Content-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\n",
+        "Content-Disposition: form-data; name=\"photo\"; filename=\"{}\"\r\n",
         filename
     )?;
-    println!("Mime type: {}", mime_type.as_ref());
-    //write!(data, "Content-Type: {}\r\n", mime_type.as_ref())?;
     write!(data, "\r\n")?;
-    data.write_all(&file_data)?;
+    data.write_all(&file.content)?;
     write!(data, "\r\n")?;
-    write!(data, "\r\n--{}", boundary)?;
     Ok(data)
 }

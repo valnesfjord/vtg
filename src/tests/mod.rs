@@ -1,7 +1,6 @@
-use crate::client::{requests::{request, file_request}, api_requests::api_call};
-
 use httpmock::prelude::*;
-use tokio::fs::File;
+
+use crate::client::requests::request;
 
 #[tokio::test]
 async fn requests() {
@@ -16,4 +15,3 @@ async fn requests() {
     mock.assert();
     assert_eq!("hello".to_string(), resp);
 }
-

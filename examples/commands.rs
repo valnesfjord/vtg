@@ -1,17 +1,10 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
-use std::{fs::File, future::Future, path::Path, pin::Pin};
-use tokio::io::AsyncReadExt;
-use vtg::{
-    client::{
-        api_requests::{api_call, ApiResponse},
-        requests::file_request,
-    },
-    structs::{
-        context::{EventType, Platform, UnifyedContext},
-        keyboard::{Color, KeyboardButton},
-        tg::TGMessage,
-        vk::VKMessageNew,
-    },
+use std::{future::Future, pin::Pin};
+use vtg::structs::{
+    context::{EventType, Platform, UnifyedContext},
+    keyboard::{Color, KeyboardButton},
+    tg::TGMessage,
+    vk::VKMessageNew,
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
@@ -48,75 +41,21 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
     let data = ctx.get_data::<i32>().unwrap();
     println!("{:?}", data);
 
-    let server_resp = ctx
-        .api_call(
-            Platform::VK,
-            "photos.getMessagesUploadServer",
-            vec![("group_id", "195053810"), ("v", "5.131")],
-        )
-        .await;
-    let val = match server_resp {
-        ApiResponse::VkResponse(val) => val,
-        _ => panic!("Error while getting upload server ()"),
-    };
-    let resp_text = file_request(
-        &val.get("response")
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("upload_url")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .replace('\\', ""),
-        Path::new("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.jpg"),
-    )
-    .await
-    .unwrap();
-    println!("{:?}", resp_text);
-    let response_json: serde_json::Value = serde_json::from_str(&resp_text).unwrap();
-    println!("{:?}", response_json);
-
-    let server_resp = ctx
-        .api_call(
-            Platform::VK,
-            "photos.saveMessagesPhoto",
-            vec![
-                (
-                    "photo",
-                    response_json.get("photo").unwrap().as_str().unwrap(),
-                ),
-                (
-                    "server",
-                    &response_json
-                        .get("server")
-                        .unwrap()
-                        .as_i64()
-                        .unwrap()
-                        .to_string(),
-                ),
-                ("hash", response_json.get("hash").unwrap().as_str().unwrap()),
-                ("v", "5.131"),
-            ],
-        )
-        .await;
-    let val = match server_resp {
-        ApiResponse::VkResponse(val) => val,
-        _ => panic!("Error while getting upload server ()"),
-    };
-    println!("{:?}", val);
-    ctx.api_call(
-        Platform::VK,
-        "messages.send",
+    ctx.send_file_photos(
+        "attachments test",
         vec![
-            ("peer_id", &ctx.peer_id.to_string()),
-            ("message", "Pivo"),
-            ("random_id", "0"),
-            ("v", "5.131"),
-            (
-                "attachment",
-                &format!("photo{}_{}", val[0]["owner_id"], val[0]["id"]),
-            ),
+            vtg::client::requests::File {
+                filename: "pivo.jpg".to_string(),
+                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.jpg")
+                    .await
+                    .unwrap(),
+            },
+            vtg::client::requests::File {
+                filename: "pivo2.jpg".to_string(),
+                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo2.jpg")
+                    .await
+                    .unwrap(),
+            },
         ],
     )
     .await;
