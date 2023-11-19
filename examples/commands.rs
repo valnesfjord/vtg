@@ -8,6 +8,7 @@ use vtg::{
         tg::TGMessage,
         vk::VKMessageNew,
     },
+    upload::Attachment,
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
@@ -44,30 +45,20 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
     let data = ctx.get_data::<i32>().unwrap();
     println!("{:?}", data);
 
-    ctx.send_file_photos(
+    ctx.send_photos(
         "attachments test",
-        vec![
-            vtg::client::requests::File {
-                filename: "pivo.jpg".to_string(),
-                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo2.jpg")
-                    .await
-                    .unwrap(),
-                ftype: FileType::Photo,
-            },
-            vtg::client::requests::File {
-                filename: "pivo2.jpg".to_string(),
-                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo3.jpg")
-                    .await
-                    .unwrap(),
-                ftype: FileType::Photo,
-            },
-            vtg::client::requests::File {
-                filename: "pivo.png".to_string(),
-                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.png")
-                    .await
-                    .unwrap(),
-                ftype: FileType::Photo,
-            },
+        vec![Attachment {
+            url:
+                "https://sn-gazeta.ru/wp-content/uploads/2023/04/tapeta-piwo-w-kuflu-i-szklance.jpg"
+                    .to_string(),
+            ftype: FileType::Photo,
+        },
+        Attachment {
+            url:
+                "https://w.forfun.com/fetch/a9/a908815bda3f615bfe16bef28c6389db.jpeg"
+                    .to_string(),
+            ftype: FileType::Photo,
+        },
         ],
     )
     .await;

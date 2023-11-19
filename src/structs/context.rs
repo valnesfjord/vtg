@@ -7,7 +7,10 @@ use crate::client::requests::File;
 use crate::structs::keyboard::{self, Keyboard};
 
 use crate::client::api_requests::api_call;
-use crate::upload::{send_tg_photo, upload_vk_message_photos};
+use crate::upload::{
+    download_files, send_tg_attachment_files, send_tg_attachments, upload_vk_message_photos,
+    Attachment,
+};
 
 use super::config::Config;
 
@@ -144,7 +147,7 @@ impl UnifyedContext {
             }
         }
     }
-    pub async fn send_file_photos(&self, message: &str, photos: Vec<File>) {
+    pub async fn send_photo_files(&self, message: &str, photos: Vec<File>) {
         let peer_id = self.peer_id;
         let config = self.config.clone();
         let message_str = message.to_owned();
@@ -174,7 +177,43 @@ impl UnifyedContext {
             }
             Platform::Telegram => {
                 tokio::task::spawn(async move {
-                    send_tg_photo(photos, &config, peer_id, message_str.as_str()).await;
+                    send_tg_attachment_files(photos, &config, peer_id, message_str.as_str()).await;
+                });
+            }
+        }
+    }
+    pub async fn send_photos(&self, message: &str, photos: Vec<Attachment>) {
+        let peer_id = self.peer_id;
+        let config = self.config.clone();
+        let message_str = message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                tokio::task::spawn(async move {
+                    let photos = download_files(photos).await;
+                    api_call(
+                        Platform::VK,
+                        "messages.send",
+                        vec![
+                            ("peer_id", &peer_id.to_string()),
+                            ("message", &message_str),
+                            ("random_id", "0"),
+                            ("v", "5.131"),
+                            (
+                                "attachment",
+                                &upload_vk_message_photos(photos, &config, peer_id)
+                                    .await
+                                    .unwrap(),
+                            ),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap();
+                });
+            }
+            Platform::Telegram => {
+                tokio::task::spawn(async move {
+                    send_tg_attachments(photos, &config, peer_id, message_str.as_str()).await;
                 });
             }
         }

@@ -50,6 +50,54 @@ pub async fn request(
         .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
     String::from_utf8(bytes.to_vec()).map_err(|e| HyperRequestError::ResponseError(e.to_string()))
 }
+pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
+    let req = Request::builder()
+        .method(Method::GET)
+        .uri(url)
+        .body(Body::empty())
+        .unwrap();
+    let res = CLIENT
+        .request(req)
+        .await
+        .map_err(HyperRequestError::RequestError)?;
+
+    let content_type = res
+        .headers()
+        .get("Content-Type")
+        .and_then(|value| value.to_str().ok());
+    let mut filename = String::new();
+    let ftype = content_type
+        .map(|value| {
+            let mut parts = value.split('/');
+            let media_type = parts.next().unwrap_or("");
+            let subtype = parts.next().unwrap_or("");
+            filename = format!("something.{}", subtype);
+            match (media_type, subtype) {
+                ("image", _) => FileType::Photo,
+                ("video", _) => FileType::Video,
+                ("audio", _) => FileType::Audio,
+                ("application", "pdf")
+                | ("application", "msword")
+                | ("application", "vnd.openxmlformats-officedocument.wordprocessingml.document")
+                | ("application", "vnd.ms-excel")
+                | ("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet") => {
+                    FileType::Document
+                }
+                _ => FileType::Other,
+            }
+        })
+        .unwrap_or(FileType::Other);
+
+    let bytes = hyper::body::to_bytes(res.into_body())
+        .await
+        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
+
+    Ok(File {
+        filename,
+        content: bytes.to_vec(),
+        ftype,
+    })
+}
 
 #[derive(Clone, Debug)]
 pub struct File {
@@ -70,11 +118,11 @@ pub enum FileType {
 impl ToString for FileType {
     fn to_string(&self) -> String {
         match self {
-            FileType::Photo => "photo".to_string(),
-            FileType::Video => "video".to_string(),
-            FileType::Audio => "audio".to_string(),
-            FileType::Document => "document".to_string(),
-            FileType::Other => "other".to_string(),
+            FileType::Photo => "Photo".to_string(),
+            FileType::Video => "Video".to_string(),
+            FileType::Audio => "Audio".to_string(),
+            FileType::Document => "Document".to_string(),
+            FileType::Other => "Other".to_string(),
         }
     }
 }
@@ -83,6 +131,7 @@ pub async fn files_request(
     files: &[File],
     data: Option<Vec<(&str, &str)>>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    println!("file: {:?}", files[0].filename);
     let boundary: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
@@ -108,8 +157,8 @@ pub async fn files_request(
             is_last = true;
         }
 
-        let file =
-            file_data(f.clone(), &boundary, &name, is_last).expect("Error while reading file");
+        let file = file_data(f.clone(), &boundary, &name.to_lowercase(), is_last)
+            .expect("Error while reading file");
         body.extend(file);
     }
     body.extend_from_slice(b"--");

@@ -4,7 +4,7 @@ use serde_json::from_value;
 use crate::{
     client::{
         api_requests::api_call,
-        requests::{files_request, File},
+        requests::{files_request, get_file, File, FileType},
     },
     structs::{
         config::Config,
@@ -53,14 +53,29 @@ pub async fn upload_vk_message_photos(
     Ok(message_photos)
 }
 
-pub async fn send_tg_photo(photos: Vec<File>, config: &Config, peer_id: i64, message: &str) {
-    if photos.len() == 1 {
+pub async fn download_files(attachments: Vec<Attachment>) -> Vec<File> {
+    let mut files: Vec<File> = Vec::new();
+    for attachment in attachments {
+        let file = get_file(&attachment.url).await.unwrap();
+        files.push(file);
+    }
+    files
+}
+
+pub async fn send_tg_attachment_files(
+    attachments: Vec<File>,
+    config: &Config,
+    peer_id: i64,
+    message: &str,
+) {
+    if attachments.len() == 1 {
         files_request(
             &format!(
-                "https://api.telegram.org/{}/sendPhoto",
+                "https://api.telegram.org/{}/send{}",
+                attachments[0].ftype.to_string(),
                 config.tg_access_token,
             ),
-            &photos,
+            &attachments,
             Some(vec![
                 ("caption", message),
                 ("chat_id", &peer_id.to_string()),
@@ -70,7 +85,7 @@ pub async fn send_tg_photo(photos: Vec<File>, config: &Config, peer_id: i64, mes
         .unwrap();
     } else {
         let mut media: Vec<String> = Vec::new();
-        for (index, f) in photos.iter().enumerate() {
+        for (index, f) in attachments.iter().enumerate() {
             let mut name: String = f.ftype.to_string();
             if index != 0 {
                 name = name + &index.to_string();
@@ -78,8 +93,8 @@ pub async fn send_tg_photo(photos: Vec<File>, config: &Config, peer_id: i64, mes
 
             media.push(format!(
                 "{{\"type\":\"{}\",\"media\":\"attach://{}\",\"caption\":\"{}\"}}",
-                f.ftype.to_string(),
-                name,
+                f.ftype.to_string().to_lowercase(),
+                name.to_lowercase(),
                 message
             ));
         }
@@ -89,11 +104,62 @@ pub async fn send_tg_photo(photos: Vec<File>, config: &Config, peer_id: i64, mes
                 "https://api.telegram.org/{}/sendMediaGroup",
                 config.tg_access_token,
             ),
-            &photos,
+            &attachments,
             Some(vec![
                 ("media", &format!("[{}]", media.join(","))),
                 ("chat_id", &peer_id.to_string()),
             ]),
+        )
+        .await
+        .unwrap();
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Attachment {
+    pub url: String,
+    pub ftype: FileType,
+}
+
+pub async fn send_tg_attachments(
+    attachments: Vec<Attachment>,
+    config: &Config,
+    peer_id: i64,
+    message: &str,
+) {
+    if attachments.len() == 1 {
+        let ftype = attachments[0].ftype.to_string();
+        api_call(
+            Platform::Telegram,
+            &format!("send{}", ftype),
+            vec![
+                ("caption", message),
+                ("chat_id", &peer_id.to_string()),
+                (&ftype.to_lowercase(), &attachments[0].url),
+            ],
+            config,
+        )
+        .await
+        .unwrap();
+    } else {
+        let mut media: Vec<String> = Vec::new();
+        for f in attachments.iter() {
+            media.push(format!(
+                "{{\"type\":\"{}\",\"media\":\"{}\",\"caption\":\"{}\"}}",
+                f.ftype.to_string().to_lowercase(),
+                f.url,
+                message
+            ));
+        }
+        debug!("MEDIA: {}", media.join(","));
+        api_call(
+            Platform::Telegram,
+            "sendMediaGroup",
+            vec![
+                ("media", &format!("[{}]", media.join(","))),
+                ("chat_id", &peer_id.to_string()),
+            ],
+            config,
         )
         .await
         .unwrap();
