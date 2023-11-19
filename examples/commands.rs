@@ -1,10 +1,13 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
-use vtg::structs::{
-    context::{EventType, Platform, UnifyedContext},
-    keyboard::{Color, KeyboardButton},
-    tg::TGMessage,
-    vk::VKMessageNew,
+use vtg::{
+    client::requests::FileType,
+    structs::{
+        context::{EventType, Platform, UnifyedContext},
+        keyboard::{Color, KeyboardButton},
+        tg::TGMessage,
+        vk::VKMessageNew,
+    },
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
@@ -46,15 +49,24 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
         vec![
             vtg::client::requests::File {
                 filename: "pivo.jpg".to_string(),
-                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.jpg")
-                    .await
-                    .unwrap(),
-            },
-            vtg::client::requests::File {
-                filename: "pivo2.jpg".to_string(),
                 content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo2.jpg")
                     .await
                     .unwrap(),
+                ftype: FileType::Photo,
+            },
+            vtg::client::requests::File {
+                filename: "pivo2.jpg".to_string(),
+                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo3.jpg")
+                    .await
+                    .unwrap(),
+                ftype: FileType::Photo,
+            },
+            vtg::client::requests::File {
+                filename: "pivo.png".to_string(),
+                content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo.png")
+                    .await
+                    .unwrap(),
+                ftype: FileType::Photo,
             },
         ],
     )

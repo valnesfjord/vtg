@@ -1,17 +1,15 @@
 use serde::Deserialize;
-use serde_json::{Value};
+use serde_json::Value;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
-use crate::client::requests::{files_request, File};
+use crate::client::requests::File;
 use crate::structs::keyboard::{self, Keyboard};
 
 use crate::client::api_requests::api_call;
-use crate::structs::upload::VKPhotoGetUploadServerResponse;
 use crate::upload::{send_tg_photo, upload_vk_message_photos};
 
 use super::config::Config;
-use super::upload::{VKMessagePhotoResponse, VKMessagePhotoUploaded};
 
 #[derive(Debug, Clone)]
 pub struct UnifyedContext {

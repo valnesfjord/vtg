@@ -55,10 +55,32 @@ pub async fn request(
 pub struct File {
     pub filename: String,
     pub content: Vec<u8>,
+    pub ftype: FileType,
+}
+
+#[derive(Clone, Debug)]
+pub enum FileType {
+    Photo,
+    Video,
+    Audio,
+    Document,
+    Other,
+}
+
+impl ToString for FileType {
+    fn to_string(&self) -> String {
+        match self {
+            FileType::Photo => "photo".to_string(),
+            FileType::Video => "video".to_string(),
+            FileType::Audio => "audio".to_string(),
+            FileType::Document => "document".to_string(),
+            FileType::Other => "other".to_string(),
+        }
+    }
 }
 pub async fn files_request(
     url: &str,
-    files: &Vec<File>,
+    files: &[File],
     data: Option<Vec<(&str, &str)>>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let boundary: String = rand::thread_rng()
@@ -76,14 +98,23 @@ pub async fn files_request(
         }
         None => String::new(),
     };
-    for f in files {
-        let file = file_data(f.clone(), &boundary).expect("Error while reading file");
+    for (index, f) in files.iter().enumerate() {
+        let mut name: String = f.ftype.to_string();
+        if index != 0 {
+            name = name + &index.to_string();
+        }
+        let mut is_last: bool = false;
+        if index == files.len() - 1 {
+            is_last = true;
+        }
+
+        let file =
+            file_data(f.clone(), &boundary, &name, is_last).expect("Error while reading file");
         body.extend(file);
-        body.extend_from_slice(b"\r\n--");
-        body.extend_from_slice(boundary.as_bytes());
     }
     body.extend_from_slice(b"--");
     debug!("[FILE] Request body len: {}", body.len());
+
     let req = Request::builder()
         .method(Method::POST)
         .uri(url.to_owned() + &query)
@@ -94,25 +125,26 @@ pub async fn files_request(
         .body(body.into())
         .unwrap();
     let res = CLIENT.request(req).await?;
-    println!("{:?}", res);
     let body = hyper::body::to_bytes(res.into_body()).await?;
     let body_str = String::from_utf8(body.to_vec())?;
-    println!("{:?}", body_str);
 
     Ok(body_str)
 }
 
-fn file_data(file: File, boundary: &str) -> io::Result<Vec<u8>> {
+fn file_data(file: File, boundary: &str, name: &str, is_last: bool) -> io::Result<Vec<u8>> {
     let mut data = Vec::new();
     let filename = file.filename;
     write!(data, "--{}\r\n", boundary)?;
     write!(
         data,
-        "Content-Disposition: form-data; name=\"photo\"; filename=\"{}\"\r\n",
-        filename
+        "Content-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\n",
+        name, filename
     )?;
     write!(data, "\r\n")?;
     data.write_all(&file.content)?;
     write!(data, "\r\n")?;
+    if is_last {
+        write!(data, "\r\n--{}", boundary)?;
+    }
     Ok(data)
 }

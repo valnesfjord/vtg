@@ -1,5 +1,4 @@
-use std::mem;
-
+use log::debug;
 use serde_json::from_value;
 
 use crate::{
@@ -29,7 +28,7 @@ pub async fn upload_vk_message_photos(
     let val: VKPhotoGetUploadServerResponse = from_value(resp).unwrap();
     let mut message_photos: String = "".to_string();
     for photo in photos {
-        let server_resp = files_request(&val.response.upload_url, &vec![photo], None)
+        let server_resp = files_request(&val.response.upload_url, &[photo], None)
             .await
             .unwrap();
         let uploaded_photo: VKMessagePhotoUploaded = serde_json::from_str(&server_resp).unwrap();
@@ -55,17 +54,48 @@ pub async fn upload_vk_message_photos(
 }
 
 pub async fn send_tg_photo(photos: Vec<File>, config: &Config, peer_id: i64, message: &str) {
-    files_request(
-        &format!(
-            "https://api.telegram.org/{}/sendPhoto",
-            config.tg_access_token,
-        ),
-        &photos,
-        Some(vec![
-            ("caption", message),
-            ("chat_id", &peer_id.to_string()),
-        ]),
-    )
-    .await
-    .unwrap();
+    if photos.len() == 1 {
+        files_request(
+            &format!(
+                "https://api.telegram.org/{}/sendPhoto",
+                config.tg_access_token,
+            ),
+            &photos,
+            Some(vec![
+                ("caption", message),
+                ("chat_id", &peer_id.to_string()),
+            ]),
+        )
+        .await
+        .unwrap();
+    } else {
+        let mut media: Vec<String> = Vec::new();
+        for (index, f) in photos.iter().enumerate() {
+            let mut name: String = f.ftype.to_string();
+            if index != 0 {
+                name = name + &index.to_string();
+            }
+
+            media.push(format!(
+                "{{\"type\":\"{}\",\"media\":\"attach://{}\",\"caption\":\"{}\"}}",
+                f.ftype.to_string(),
+                name,
+                message
+            ));
+        }
+        debug!("MEDIA: {}", media.join(","));
+        files_request(
+            &format!(
+                "https://api.telegram.org/{}/sendMediaGroup",
+                config.tg_access_token,
+            ),
+            &photos,
+            Some(vec![
+                ("media", &format!("[{}]", media.join(","))),
+                ("chat_id", &peer_id.to_string()),
+            ]),
+        )
+        .await
+        .unwrap();
+    }
 }
