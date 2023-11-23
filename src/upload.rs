@@ -9,49 +9,12 @@ use crate::{
     structs::{
         config::Config,
         context::Platform,
-        upload::{VKMessagePhotoResponse, VKMessagePhotoUploaded, VKPhotoGetUploadServerResponse},
+        upload::{
+            VKGetUploadServerResponse, VKMessageDocumentResponse, VKMessageDocumentUploaded,
+            VKMessagePhotoResponse, VKMessagePhotoUploaded,
+        },
     },
 };
-
-pub async fn upload_vk_message_photos(
-    photos: Vec<File>,
-    config: &Config,
-    peer_id: i64,
-) -> Result<String, String> {
-    let resp = api_call(
-        Platform::VK,
-        "photos.getMessagesUploadServer",
-        vec![("peer_id", &peer_id.to_string()), ("v", "5.131")],
-        config,
-    )
-    .await?;
-    let val: VKPhotoGetUploadServerResponse = from_value(resp).unwrap();
-    let mut message_photos: String = "".to_string();
-    for photo in photos {
-        let server_resp = files_request(&val.response.upload_url, &[photo], None)
-            .await
-            .unwrap();
-        let uploaded_photo: VKMessagePhotoUploaded = serde_json::from_str(&server_resp).unwrap();
-        let server_resp = api_call(
-            Platform::VK,
-            "photos.saveMessagesPhoto",
-            vec![
-                ("photo", &uploaded_photo.photo),
-                ("server", &uploaded_photo.server.to_string()),
-                ("hash", &uploaded_photo.hash),
-                ("v", "5.131"),
-            ],
-            config,
-        )
-        .await?;
-        let message_photo: VKMessagePhotoResponse = from_value(server_resp).unwrap();
-        message_photos.push_str(&format!(
-            "photo{}_{},",
-            message_photo.response[0].owner_id, message_photo.response[0].id
-        ))
-    }
-    Ok(message_photos)
-}
 
 pub async fn download_files(attachments: Vec<Attachment>) -> Vec<File> {
     let mut files: Vec<File> = Vec::new();
@@ -60,6 +23,129 @@ pub async fn download_files(attachments: Vec<Attachment>) -> Vec<File> {
         files.push(file);
     }
     files
+}
+struct VKUploadServers {
+    photo: String,
+    audio: String,
+    doc: String,
+}
+pub async fn upload_vk_attachments(
+    attachments: Vec<File>,
+    config: &Config,
+    peer_id: i64,
+) -> Result<String, String> {
+    let mut message_attachments: String = "".to_string();
+    let mut upload_servers = VKUploadServers {
+        photo: "".to_string(),
+        audio: "".to_string(),
+        doc: "".to_string(),
+    };
+    for attachment in attachments {
+        let server: String = if attachment.ftype == FileType::Photo {
+            if upload_servers.photo.is_empty() {
+                let resp = api_call(
+                    Platform::VK,
+                    "photos.getMessagesUploadServer",
+                    vec![("peer_id", &peer_id.to_string()), ("v", "5.131")],
+                    config,
+                )
+                .await?;
+                let val: VKGetUploadServerResponse = from_value(resp).unwrap();
+                upload_servers.photo = val.response.upload_url;
+                upload_servers.photo.clone()
+            } else {
+                upload_servers.photo.clone()
+            }
+        } else if attachment.ftype == FileType::Audio {
+            if upload_servers.audio.is_empty() {
+                let resp = api_call(
+                    Platform::VK,
+                    "docs.getMessagesUploadServer",
+                    vec![
+                        ("peer_id", &peer_id.to_string()),
+                        ("type", "audio_message"),
+                        ("v", "5.131"),
+                    ],
+                    config,
+                )
+                .await?;
+                let val: VKGetUploadServerResponse = from_value(resp).unwrap();
+                upload_servers.doc = val.response.upload_url;
+                upload_servers.doc.clone()
+            } else {
+                upload_servers.audio.clone()
+            }
+        } else if upload_servers.doc.is_empty() {
+            let resp = api_call(
+                Platform::VK,
+                "docs.getMessagesUploadServer",
+                vec![
+                    ("peer_id", &peer_id.to_string()),
+                    ("type", "doc"),
+                    ("v", "5.131"),
+                ],
+                config,
+            )
+            .await?;
+            let val: VKGetUploadServerResponse = from_value(resp).unwrap();
+            upload_servers.doc = val.response.upload_url;
+            upload_servers.doc.clone()
+        } else {
+            upload_servers.doc.clone()
+        };
+
+        if attachment.ftype == FileType::Photo {
+            let server_resp = files_request(&server, &[attachment], None, Platform::VK)
+                .await
+                .unwrap();
+            let uploaded_photo: VKMessagePhotoUploaded =
+                serde_json::from_str(&server_resp).unwrap();
+            let server_resp = api_call(
+                Platform::VK,
+                "photos.saveMessagesPhoto",
+                vec![
+                    ("photo", &uploaded_photo.photo),
+                    ("server", &uploaded_photo.server.to_string()),
+                    ("hash", &uploaded_photo.hash),
+                    ("v", "5.131"),
+                ],
+                config,
+            )
+            .await?;
+            let message_photo: VKMessagePhotoResponse = from_value(server_resp).unwrap();
+            message_attachments.push_str(&format!(
+                "photo{}_{},",
+                message_photo.response[0].owner_id, message_photo.response[0].id
+            ))
+        } else {
+            let ftype = attachment.ftype.clone();
+            let server_resp = files_request(&server, &[attachment], None, Platform::VK)
+                .await
+                .unwrap();
+            let uploaded_doc: VKMessageDocumentUploaded =
+                serde_json::from_str(&server_resp).unwrap();
+            let server_resp = api_call(
+                Platform::VK,
+                "docs.save",
+                vec![("file", &uploaded_doc.file), ("v", "5.131")],
+                config,
+            )
+            .await?;
+            if ftype == FileType::Audio {
+                let message_audio: VKMessageDocumentResponse = from_value(server_resp).unwrap();
+                let audio_message = message_audio.response.audio_message.unwrap();
+                message_attachments.push_str(&format!(
+                    "audio_message{}_{},",
+                    audio_message.owner_id, audio_message.id
+                ))
+            } else {
+                let message_doc: VKMessageDocumentResponse = from_value(server_resp).unwrap();
+                let doc = message_doc.response.doc.unwrap();
+                message_attachments.push_str(&format!("doc{}_{},", doc.owner_id, doc.id))
+            }
+        }
+    }
+    Ok(message_attachments)
 }
 
 pub async fn send_tg_attachment_files(
@@ -80,6 +166,7 @@ pub async fn send_tg_attachment_files(
                 ("caption", message),
                 ("chat_id", &peer_id.to_string()),
             ]),
+            Platform::Telegram,
         )
         .await
         .unwrap();
@@ -109,6 +196,7 @@ pub async fn send_tg_attachment_files(
                 ("media", &format!("[{}]", media.join(","))),
                 ("chat_id", &peer_id.to_string()),
             ]),
+            Platform::Telegram,
         )
         .await
         .unwrap();

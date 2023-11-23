@@ -7,6 +7,8 @@ use log::debug;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use std::io::{self, Write};
+
+use crate::structs::context::Platform;
 #[derive(Debug)]
 pub enum HyperRequestError {
     RequestError(hyper::Error),
@@ -76,14 +78,7 @@ pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
                 ("image", _) => FileType::Photo,
                 ("video", _) => FileType::Video,
                 ("audio", _) => FileType::Audio,
-                ("application", "pdf")
-                | ("application", "msword")
-                | ("application", "vnd.openxmlformats-officedocument.wordprocessingml.document")
-                | ("application", "vnd.ms-excel")
-                | ("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet") => {
-                    FileType::Document
-                }
-                _ => FileType::Other,
+                _ => FileType::Document,
             }
         })
         .unwrap_or(FileType::Other);
@@ -106,7 +101,7 @@ pub struct File {
     pub ftype: FileType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FileType {
     Photo,
     Video,
@@ -130,6 +125,7 @@ pub async fn files_request(
     url: &str,
     files: &[File],
     data: Option<Vec<(&str, &str)>>,
+    platform: Platform,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     println!("file: {:?}", files[0].filename);
     let boundary: String = rand::thread_rng()
@@ -149,6 +145,9 @@ pub async fn files_request(
     };
     for (index, f) in files.iter().enumerate() {
         let mut name: String = f.ftype.to_string();
+        if platform == Platform::VK {
+            name = "file".to_string();
+        }
         if index != 0 {
             name = name + &index.to_string();
         }
@@ -156,7 +155,7 @@ pub async fn files_request(
         if index == files.len() - 1 {
             is_last = true;
         }
-
+        println!("file: {:?}", f.filename);
         let file = file_data(f.clone(), &boundary, &name.to_lowercase(), is_last)
             .expect("Error while reading file");
         body.extend(file);

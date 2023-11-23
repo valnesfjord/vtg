@@ -8,7 +8,7 @@ use crate::structs::keyboard::{self, Keyboard};
 
 use crate::client::api_requests::api_call;
 use crate::upload::{
-    download_files, send_tg_attachment_files, send_tg_attachments, upload_vk_message_photos,
+    download_files, send_tg_attachment_files, send_tg_attachments, upload_vk_attachments,
     Attachment,
 };
 
@@ -147,7 +147,7 @@ impl UnifyedContext {
             }
         }
     }
-    pub async fn send_photo_files(&self, message: &str, photos: Vec<File>) {
+    pub async fn send_attachment_files(&self, message: &str, attachments: Vec<File>) {
         let peer_id = self.peer_id;
         let config = self.config.clone();
         let message_str = message.to_owned();
@@ -164,7 +164,7 @@ impl UnifyedContext {
                             ("v", "5.131"),
                             (
                                 "attachment",
-                                &upload_vk_message_photos(photos, &config, peer_id)
+                                &upload_vk_attachments(attachments, &config, peer_id)
                                     .await
                                     .unwrap(),
                             ),
@@ -177,19 +177,20 @@ impl UnifyedContext {
             }
             Platform::Telegram => {
                 tokio::task::spawn(async move {
-                    send_tg_attachment_files(photos, &config, peer_id, message_str.as_str()).await;
+                    send_tg_attachment_files(attachments, &config, peer_id, message_str.as_str())
+                        .await;
                 });
             }
         }
     }
-    pub async fn send_photos(&self, message: &str, photos: Vec<Attachment>) {
+    pub async fn send_attachments(&self, message: &str, attachments: Vec<Attachment>) {
         let peer_id = self.peer_id;
         let config = self.config.clone();
         let message_str = message.to_owned();
         match self.platform {
             Platform::VK => {
                 tokio::task::spawn(async move {
-                    let photos = download_files(photos).await;
+                    let attachments = download_files(attachments).await;
                     api_call(
                         Platform::VK,
                         "messages.send",
@@ -200,7 +201,7 @@ impl UnifyedContext {
                             ("v", "5.131"),
                             (
                                 "attachment",
-                                &upload_vk_message_photos(photos, &config, peer_id)
+                                &upload_vk_attachments(attachments, &config, peer_id)
                                     .await
                                     .unwrap(),
                             ),
@@ -213,7 +214,7 @@ impl UnifyedContext {
             }
             Platform::Telegram => {
                 tokio::task::spawn(async move {
-                    send_tg_attachments(photos, &config, peer_id, message_str.as_str()).await;
+                    send_tg_attachments(attachments, &config, peer_id, message_str.as_str()).await;
                 });
             }
         }

@@ -45,7 +45,7 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
     let data = ctx.get_data::<i32>().unwrap();
     println!("{:?}", data);
 
-    ctx.send_photos(
+    ctx.send_attachments(
         "attachments test",
         vec![Attachment {
             url:
