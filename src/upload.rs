@@ -56,7 +56,7 @@ pub async fn upload_vk_attachments(
             } else {
                 upload_servers.photo.clone()
             }
-        } else if attachment.ftype == FileType::Audio {
+        } else if attachment.ftype == FileType::Audio || attachment.ftype == FileType::Voice {
             if upload_servers.audio.is_empty() {
                 let resp = api_call(
                     Platform::VK,
@@ -131,7 +131,7 @@ pub async fn upload_vk_attachments(
                 config,
             )
             .await?;
-            if ftype == FileType::Audio {
+            if ftype == FileType::Audio || ftype == FileType::Voice {
                 let message_audio: VKMessageDocumentResponse = from_value(server_resp).unwrap();
                 let audio_message = message_audio.response.audio_message.unwrap();
                 message_attachments.push_str(&format!(
@@ -158,7 +158,7 @@ pub async fn send_tg_attachment_files(
         files_request(
             &format!(
                 "https://api.telegram.org/{}/send{}",
-                attachments[0].ftype.to_string(),
+                attachments[0].ftype.to_string().replace('_', ""),
                 config.tg_access_token,
             ),
             &attachments,

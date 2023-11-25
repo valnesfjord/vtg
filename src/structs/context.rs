@@ -99,7 +99,6 @@ impl UnifyedContext {
         match self.platform {
             Platform::VK => {
                 let j = serde_json::to_string(&keyboard.vk_buttons).unwrap();
-                println!("{}", j);
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::VK,

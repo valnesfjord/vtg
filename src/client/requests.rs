@@ -107,6 +107,9 @@ pub enum FileType {
     Video,
     Audio,
     Document,
+    Voice,
+    VideoNote,
+    Animation,
     Other,
 }
 
@@ -117,6 +120,9 @@ impl ToString for FileType {
             FileType::Video => "Video".to_string(),
             FileType::Audio => "Audio".to_string(),
             FileType::Document => "Document".to_string(),
+            FileType::Voice => "Voice".to_string(),
+            FileType::VideoNote => "Video_Note".to_string(),
+            FileType::Animation => "Animation".to_string(),
             FileType::Other => "Other".to_string(),
         }
     }
@@ -127,7 +133,6 @@ pub async fn files_request(
     data: Option<Vec<(&str, &str)>>,
     platform: Platform,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    println!("file: {:?}", files[0].filename);
     let boundary: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
@@ -155,9 +160,13 @@ pub async fn files_request(
         if index == files.len() - 1 {
             is_last = true;
         }
-        println!("file: {:?}", f.filename);
-        let file = file_data(f.clone(), &boundary, &name.to_lowercase(), is_last)
-            .expect("Error while reading file");
+        let file = file_data(
+            f.clone(),
+            &boundary,
+            &name.replace('_', "").to_lowercase(),
+            is_last,
+        )
+        .expect("Error while reading file");
         body.extend(file);
     }
     body.extend_from_slice(b"--");
