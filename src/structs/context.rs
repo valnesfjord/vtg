@@ -1,10 +1,16 @@
 use serde::Deserialize;
+use serde_json::Value;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
+use crate::client::requests::File;
 use crate::structs::keyboard::{self, Keyboard};
 
-use crate::client::api_requests::{api_call, ApiResponse};
+use crate::client::api_requests::api_call;
+use crate::upload::{
+    download_files, send_tg_attachment_files, send_tg_attachments, upload_vk_attachments,
+    Attachment,
+};
 
 use super::config::Config;
 
@@ -18,6 +24,7 @@ pub struct UnifyedContext {
     pub platform: Platform,
     pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    pub attachments: Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>>,
     pub(crate) config: Config,
 }
 
@@ -92,7 +99,6 @@ impl UnifyedContext {
         match self.platform {
             Platform::VK => {
                 let j = serde_json::to_string(&keyboard.vk_buttons).unwrap();
-                println!("{}", j);
                 tokio::task::spawn(async move {
                     api_call(
                         Platform::VK,
@@ -140,12 +146,84 @@ impl UnifyedContext {
             }
         }
     }
+    pub async fn send_attachment_files(&self, message: &str, attachments: Vec<File>) {
+        let peer_id = self.peer_id;
+        let config = self.config.clone();
+        let message_str = message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                tokio::task::spawn(async move {
+                    api_call(
+                        Platform::VK,
+                        "messages.send",
+                        vec![
+                            ("peer_id", &peer_id.to_string()),
+                            ("message", &message_str),
+                            ("random_id", "0"),
+                            ("v", "5.131"),
+                            (
+                                "attachment",
+                                &upload_vk_attachments(attachments, &config, peer_id)
+                                    .await
+                                    .unwrap(),
+                            ),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap();
+                });
+            }
+            Platform::Telegram => {
+                tokio::task::spawn(async move {
+                    send_tg_attachment_files(attachments, &config, peer_id, message_str.as_str())
+                        .await;
+                });
+            }
+        }
+    }
+    pub async fn send_attachments(&self, message: &str, attachments: Vec<Attachment>) {
+        let peer_id = self.peer_id;
+        let config = self.config.clone();
+        let message_str = message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                tokio::task::spawn(async move {
+                    let attachments = download_files(attachments).await;
+                    api_call(
+                        Platform::VK,
+                        "messages.send",
+                        vec![
+                            ("peer_id", &peer_id.to_string()),
+                            ("message", &message_str),
+                            ("random_id", "0"),
+                            ("v", "5.131"),
+                            (
+                                "attachment",
+                                &upload_vk_attachments(attachments, &config, peer_id)
+                                    .await
+                                    .unwrap(),
+                            ),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap();
+                });
+            }
+            Platform::Telegram => {
+                tokio::task::spawn(async move {
+                    send_tg_attachments(attachments, &config, peer_id, message_str.as_str()).await;
+                });
+            }
+        }
+    }
     pub async fn api_call(
         &self,
         platform: Platform,
         method: &str,
         params: Vec<(&str, &str)>,
-    ) -> ApiResponse {
+    ) -> Value {
         api_call(platform, method, params, &self.config)
             .await
             .unwrap()
@@ -161,5 +239,13 @@ impl UnifyedContext {
     pub fn get_event<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
         let event = self.event.lock().unwrap();
         event.downcast_ref::<T>().cloned()
+    }
+    pub fn get_attachments<T: Any + Send + Sync + Clone>(&self) -> Option<Vec<T>> {
+        let attachments = self.attachments.lock().unwrap();
+        let result: Option<Vec<T>> = attachments
+            .iter()
+            .map(|attachment| attachment.downcast_ref::<T>().cloned())
+            .collect();
+        result
     }
 }

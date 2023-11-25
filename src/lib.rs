@@ -5,3 +5,4 @@ pub mod server;
 mod tests;
 
 pub mod structs;
+pub mod upload;

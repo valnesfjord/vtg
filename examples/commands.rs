@@ -1,10 +1,14 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
 use std::{future::Future, pin::Pin};
-use vtg::structs::{
-    context::{EventType, Platform, UnifyedContext},
-    keyboard::{Color, KeyboardButton},
-    tg::TGMessage,
-    vk::VKMessageNew,
+use vtg::{
+    client::requests::FileType,
+    structs::{
+        context::{EventType, Platform, UnifyedContext},
+        keyboard::{Color, KeyboardButton},
+        tg::TGMessage,
+        vk::VKMessageNew,
+    },
+    upload::Attachment,
 };
 
 type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
@@ -40,6 +44,24 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
     println!("{:?}", ctx);
     let data = ctx.get_data::<i32>().unwrap();
     println!("{:?}", data);
+
+    ctx.send_attachments(
+            "attachments test",
+            vec![Attachment {
+                url:
+                    "https://sn-gazeta.ru/wp-content/uploads/2023/04/tapeta-piwo-w-kuflu-i-szklance.jpg"
+                        .to_string(),
+                ftype: FileType::Photo,
+            },
+            Attachment {
+                url:
+                    "https://w.forfun.com/fetch/a9/a908815bda3f615bfe16bef28c6389db.jpeg"
+                        .to_string(),
+                ftype: FileType::Photo,
+            },
+            ],
+        )
+        .await;
     ctx
 }
 

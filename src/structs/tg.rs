@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use super::config::Config;
 use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
+use super::tg_attachments::*;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct TGGetUpdates {
@@ -29,6 +30,7 @@ pub struct TGCallbackQuery {
     pub message: Option<TGMessage>,
     pub chat_instance: String,
     pub data: Option<String>,
+    pub inline_message_id: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -36,6 +38,7 @@ pub struct TGChosenInlineResult {
     pub result_id: String,
     pub from: TGFrom,
     pub query: String,
+    pub inline_message_id: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -43,6 +46,8 @@ pub struct TGInlineQuery {
     pub id: String,
     pub from: TGFrom,
     pub query: String,
+    pub offset: String,
+    pub chat_type: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -52,16 +57,82 @@ pub struct TGMessage {
     pub chat: TGChat,
     pub message_id: i64,
     pub reply_to_message: Option<Box<TGMessage>>,
+    pub forward_from: Option<TGFrom>,
+    pub forward_from_chat: Option<TGChat>,
+    pub forward_from_message_id: Option<i64>,
+    pub forward_signature: Option<String>,
+    pub forward_date: Option<i64>,
+    pub entities: Option<Vec<TGMessageEntity>>,
+    pub caption_entities: Option<Vec<TGMessageEntity>>,
+    pub audio: Option<Audio>,
+    pub document: Option<Document>,
+    pub photo: Option<Vec<PhotoSize>>,
+    pub sticker: Option<Sticker>,
+    pub video: Option<Video>,
+    pub video_note: Option<VideoNote>,
+    pub voice: Option<Voice>,
+    pub caption: Option<String>,
+    pub contact: Option<Contact>,
+    pub location: Option<Location>,
+    pub venue: Option<Venue>,
+    pub new_chat_members: Option<Vec<TGUser>>,
+    pub left_chat_member: Option<TGUser>,
+    pub new_chat_title: Option<String>,
+    pub new_chat_photo: Option<Vec<TGPhotoSize>>,
+    pub delete_chat_photo: Option<bool>,
+    pub group_chat_created: Option<bool>,
+    pub supergroup_chat_created: Option<bool>,
+    pub channel_chat_created: Option<bool>,
+    pub migrate_to_chat_id: Option<i64>,
+    pub migrate_from_chat_id: Option<i64>,
+    pub pinned_message: Option<Box<TGMessage>>,
+    pub invoice: Option<TGInvoice>,
+    pub successful_payment: Option<TGSuccessfulPayment>,
+    pub connected_website: Option<String>,
+    pub reply_to_message_id: Option<i64>,
+    pub web_app_data: Option<WebAppData>,
 }
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Debug)]
+pub struct TGMessageEntity {
+    pub r#type: String,
+    pub offset: i64,
+    pub length: i64,
+    pub url: Option<String>,
+    pub user: Option<TGUser>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct TGUser {
+    pub id: i64,
+    pub is_bot: bool,
+    pub first_name: String,
+    pub last_name: Option<String>,
+    pub username: Option<String>,
+    pub language_code: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGFrom {
     pub id: i64,
+    pub is_bot: bool,
+    pub first_name: String,
+    pub last_name: Option<String>,
+    pub username: Option<String>,
+    pub language_code: Option<String>,
+    pub is_premium: Option<bool>,
+    pub added_to_attachment_menu: Option<bool>,
 }
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct TGChat {
     pub id: i64,
+    pub r#type: String,
+    pub title: Option<String>,
+    pub username: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub is_forum: Option<bool>,
 }
 
 impl UnifyContext for TGUpdate {
@@ -149,6 +220,7 @@ impl UnifyContext for TGUpdate {
             data: Arc::new(Mutex::new(Box::new(()))),
             config: config.to_owned(),
             event,
+            attachments: unify_attachments(self.message.clone()),
         }
     }
 }

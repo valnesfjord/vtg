@@ -1,20 +1,16 @@
 use log::debug;
+use serde_json::Value;
 
 use crate::structs::context::Platform;
 
 use super::*;
-pub enum ApiResponse {
-    VkResponse(serde_json::Value),
-    TelegramResponse(serde_json::Value),
-    Error(String),
-}
 
 pub async fn api_call(
     platform: Platform,
     method: &str,
     params: Vec<(&str, &str)>,
     config: &Config,
-) -> Result<ApiResponse, String> {
+) -> Result<Value, String> {
     let url = match platform {
         Platform::VK => format!("https://api.vk.com/method/{}", method),
         Platform::Telegram => format!(
@@ -38,13 +34,13 @@ pub async fn api_call(
                         let error_msg = error["error_msg"].as_str().unwrap_or("Unknown error");
                         Err(error_msg.to_string())
                     } else {
-                        Ok(ApiResponse::VkResponse(response_json))
+                        Ok(response_json)
                     }
                 }
                 Platform::Telegram => {
                     if let Some(ok) = response_json.get("ok") {
                         if ok.as_bool().unwrap_or(false) {
-                            Ok(ApiResponse::TelegramResponse(response_json))
+                            Ok(response_json)
                         } else {
                             let error_msg = response_json["description"]
                                 .as_str()
