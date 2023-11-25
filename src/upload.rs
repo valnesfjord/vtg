@@ -158,8 +158,8 @@ pub async fn send_tg_attachment_files(
         files_request(
             &format!(
                 "https://api.telegram.org/{}/send{}",
-                attachments[0].ftype.to_string().replace('_', ""),
                 config.tg_access_token,
+                attachments[0].ftype.to_string().replace('_', ""),
             ),
             &attachments,
             Some(vec![

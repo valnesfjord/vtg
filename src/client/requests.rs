@@ -133,6 +133,7 @@ pub async fn files_request(
     data: Option<Vec<(&str, &str)>>,
     platform: Platform,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    debug!("Request url: {}", url);
     let boundary: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
@@ -184,6 +185,7 @@ pub async fn files_request(
     let res = CLIENT.request(req).await?;
     let body = hyper::body::to_bytes(res.into_body()).await?;
     let body_str = String::from_utf8(body.to_vec())?;
+    debug!("Response body: {}", body_str);
 
     Ok(body_str)
 }
