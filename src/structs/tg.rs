@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 
 use std::sync::{Arc, Mutex};
@@ -93,7 +93,7 @@ pub struct TGMessage {
     pub web_app_data: Option<WebAppData>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct TGMessageEntity {
     pub r#type: String,
     pub offset: i64,
@@ -102,7 +102,7 @@ pub struct TGMessageEntity {
     pub user: Option<TGUser>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Serialize)]
 pub struct TGUser {
     pub id: i64,
     pub is_bot: bool,
