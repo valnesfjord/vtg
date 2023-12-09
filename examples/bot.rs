@@ -58,7 +58,7 @@ async fn main() {
         vk_access_token,
         vk_group_id: vk_group_id.parse().unwrap(),
         tg_access_token,
-        vk_api_version: "5.131".to_owned(),
+        vk_api_version: "5.199".to_owned(), //TODO: Я ЗАБЫЛ ЧТО У НАС ВЕРСИЯ ВКАПИ КАТАЕТСЯ С НАМИ В КОНФИГЕ, МОЖНО ИСПОЛЬЗОВАТЬ (НИ РАЗУ НЕ ИСПОЛЬЗОВАЛ)
         ..Default::default()
     };
     let mut middleware_chain = MiddlewareChain::new();

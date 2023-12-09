@@ -13,6 +13,9 @@ use crate::upload::{
 };
 
 use super::config::Config;
+use super::struct_to_vec::struct_to_vec;
+use super::tg_api::TGSendMessageOptions;
+use super::vk_api::VKMessageSendOptions;
 
 #[derive(Debug, Clone)]
 pub struct UnifyedContext {
@@ -25,7 +28,7 @@ pub struct UnifyedContext {
     pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     pub attachments: Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>>,
-    pub(crate) config: Config,
+    pub config: Config,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +55,12 @@ pub struct VKNewMessageResponse {
     pub response: i64,
 }
 
+#[derive(Clone, Debug)]
+pub struct SendOptions {
+    pub vk: VKMessageSendOptions,
+    pub tg: TGSendMessageOptions,
+}
+
 impl UnifyedContext {
     pub fn send(&self, message: &str) {
         let peer_id = self.peer_id.to_string();
@@ -67,7 +76,7 @@ impl UnifyedContext {
                             ("peer_id", peer_id.as_str()),
                             ("message", message_str.as_str()),
                             ("random_id", "0"),
-                            ("v", "5.131"),
+                            ("v", "5.199"),
                         ],
                         &config,
                     )
@@ -107,7 +116,7 @@ impl UnifyedContext {
                             ("peer_id", peer_id.as_str()),
                             ("message", message_str.as_str()),
                             ("random_id", "0"),
-                            ("v", "5.131"),
+                            ("v", "5.199"),
                             ("keyboard", j.as_str()),
                         ],
                         &config,
@@ -146,6 +155,36 @@ impl UnifyedContext {
             }
         }
     }
+    pub fn send_with_options(&self, message: &'static str, options: SendOptions) {
+        println!("{:?}", options);
+        let config = self.config.clone();
+        match self.platform {
+            Platform::VK => {
+                let mut vk = struct_to_vec(options.vk);
+                if !vk.contains(&("message", message)) {
+                    vk.push(("message", message));
+                }
+                vk.push(("random_id", "0"));
+                vk.push(("v", "5.199"));
+                tokio::task::spawn(async move {
+                    api_call(Platform::VK, "messages.send", vk, &config)
+                        .await
+                        .unwrap()
+                });
+            }
+            Platform::Telegram => {
+                let mut tg = struct_to_vec(options.tg);
+                if !tg.contains(&("text", message)) {
+                    tg.push(("text", message));
+                }
+                tokio::task::spawn(async move {
+                    api_call(Platform::Telegram, "sendMessage", tg, &config)
+                        .await
+                        .unwrap()
+                });
+            }
+        }
+    }
     pub async fn send_attachment_files(&self, message: &str, attachments: Vec<File>) {
         let peer_id = self.peer_id;
         let config = self.config.clone();
@@ -160,7 +199,7 @@ impl UnifyedContext {
                             ("peer_id", &peer_id.to_string()),
                             ("message", &message_str),
                             ("random_id", "0"),
-                            ("v", "5.131"),
+                            ("v", "5.199"),
                             (
                                 "attachment",
                                 &upload_vk_attachments(attachments, &config, peer_id)
@@ -197,7 +236,7 @@ impl UnifyedContext {
                             ("peer_id", &peer_id.to_string()),
                             ("message", &message_str),
                             ("random_id", "0"),
-                            ("v", "5.131"),
+                            ("v", "5.199"),
                             (
                                 "attachment",
                                 &upload_vk_attachments(attachments, &config, peer_id)

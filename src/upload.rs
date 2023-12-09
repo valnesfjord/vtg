@@ -46,7 +46,7 @@ pub async fn upload_vk_attachments(
                 let resp = api_call(
                     Platform::VK,
                     "photos.getMessagesUploadServer",
-                    vec![("peer_id", &peer_id.to_string()), ("v", "5.131")],
+                    vec![("peer_id", &peer_id.to_string()), ("v", "5.199")],
                     config,
                 )
                 .await?;
@@ -64,7 +64,7 @@ pub async fn upload_vk_attachments(
                     vec![
                         ("peer_id", &peer_id.to_string()),
                         ("type", "audio_message"),
-                        ("v", "5.131"),
+                        ("v", "5.199"),
                     ],
                     config,
                 )
@@ -82,7 +82,7 @@ pub async fn upload_vk_attachments(
                 vec![
                     ("peer_id", &peer_id.to_string()),
                     ("type", "doc"),
-                    ("v", "5.131"),
+                    ("v", "5.199"),
                 ],
                 config,
             )
@@ -107,7 +107,7 @@ pub async fn upload_vk_attachments(
                     ("photo", &uploaded_photo.photo),
                     ("server", &uploaded_photo.server.to_string()),
                     ("hash", &uploaded_photo.hash),
-                    ("v", "5.131"),
+                    ("v", "5.199"),
                 ],
                 config,
             )
@@ -127,7 +127,7 @@ pub async fn upload_vk_attachments(
             let server_resp = api_call(
                 Platform::VK,
                 "docs.save",
-                vec![("file", &uploaded_doc.file), ("v", "5.131")],
+                vec![("file", &uploaded_doc.file), ("v", "5.199")],
                 config,
             )
             .await?;
@@ -219,7 +219,7 @@ pub async fn send_tg_attachments(
         let ftype = attachments[0].ftype.to_string();
         api_call(
             Platform::Telegram,
-            &format!("send{}", ftype),
+            &format!("send{}", ftype.replace('_', "")),
             vec![
                 ("caption", message),
                 ("chat_id", &peer_id.to_string()),

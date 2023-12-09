@@ -3,10 +3,12 @@ use std::{future::Future, pin::Pin};
 use vtg::{
     client::requests::FileType,
     structs::{
-        context::{EventType, Platform, UnifyedContext},
+        context::{EventType, Platform, SendOptions, UnifyedContext},
         keyboard::{Color, KeyboardButton},
         tg::TGMessage,
+        tg_api::{self, TGSendMessageOptions},
         vk::VKMessageNew,
+        vk_api::{self, VKMessageSendOptions},
     },
     upload::Attachment,
 };
@@ -29,14 +31,50 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
         vtg::structs::keyboard::Keyboard::new(
             vec![vec![KeyboardButton {
                 color: Color::Positive,
-                text: "Посмотреть баланс".to_string(),
-                data: Some("{\"text\": \"balance\"}".to_string()),
+                text: "Посмотреть".to_string(),
+                data: Some("{\"text\": \"test\"}".to_string()),
                 url: None,
             }]],
             true,
             None,
         ),
     );
+    ctx.send_with_options(
+        "пивко @valnesfjord @cyournamec",
+        SendOptions {
+            vk: VKMessageSendOptions {
+                disable_mentions: Some(true),
+                peer_id: Some(ctx.peer_id),
+                ..Default::default()
+            },
+            tg: TGSendMessageOptions {
+                disable_notification: Some(true),
+                chat_id: Some(ctx.peer_id),
+                ..Default::default()
+            },
+        },
+    );
+
+    if ctx.platform == Platform::VK {
+        vk_api::Messages::send(
+            VKMessageSendOptions {
+                peer_id: Some(ctx.peer_id),
+                message: Some("test".to_string()),
+                random_id: Some(0),
+                ..Default::default()
+            },
+            ctx.config.clone(),
+        );
+    } else {
+        tg_api::Api::send_message(
+            TGSendMessageOptions {
+                chat_id: Some(ctx.peer_id),
+                text: Some("test".to_string()),
+                ..Default::default()
+            },
+            ctx.config.clone(),
+        );
+    }
     ctx
 }
 pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
