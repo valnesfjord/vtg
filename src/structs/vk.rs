@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
@@ -48,7 +48,7 @@ pub struct VKMessageNew {
     pub message: VKMessage,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
 pub struct VKMessage {
     pub text: String,
     pub from_id: i64,
@@ -60,6 +60,68 @@ pub struct VKMessage {
     pub ref_: Option<String>,
     pub ref_source: Option<String>,
     pub attachments: Option<Vec<VKAttachment>>,
+    pub important: Option<bool>,
+    pub random_id: Option<i64>,
+    pub conversation_message_id: Option<i64>,
+    pub action: Option<VKMessageAction>,
+    pub admin_author_id: Option<i64>,
+    pub conversation_chat_id: Option<i64>,
+    pub is_hidden: Option<bool>,
+    pub update_time: Option<i64>,
+    pub was_listened: Option<bool>,
+    pub pinned_at: Option<i64>,
+    pub message_tag: Option<String>,
+    pub is_cropped: Option<bool>,
+    pub members_count: Option<i64>,
+    pub geo: Option<VKGeo>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKGeo {
+    pub coordinates: Option<VKCoordinates>,
+    pub place: Option<VKPlace>,
+    pub showmap: Option<bool>,
+    pub type_: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKCoordinates {
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKPlace {
+    pub id: Option<i64>,
+    pub title: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub created: Option<i64>,
+    pub icon: Option<String>,
+    pub country: Option<String>,
+    pub city: Option<String>,
+    pub type_: Option<i64>,
+    pub group_id: Option<i64>,
+    pub group_photo: Option<String>,
+    pub checkins: Option<i64>,
+    pub updated: Option<i64>,
+    pub address: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKMessageAction {
+    pub r#type: String,
+    pub member_id: Option<i64>,
+    pub text: Option<String>,
+    pub email: Option<String>,
+    pub photo: Option<VKPhoto>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKPhoto {
+    pub photo_50: Option<String>,
+    pub photo_100: Option<String>,
+    pub photo_200: Option<String>,
 }
 
 impl UnifyContext for VKUpdate {

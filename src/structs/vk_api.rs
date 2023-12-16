@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::skip_serializing_none;
-use tokio::task::{JoinError, JoinHandle};
+use tokio::task::JoinHandle;
 
 use crate::client::api_requests::api_call;
+use crate::structs::vk::VKMessage;
 
 use super::{config::Config, context::Platform, struct_to_vec::struct_to_vec};
 pub fn vk_api_call(
@@ -24,46 +25,135 @@ impl Messages {
     pub async fn send(
         options: VKMessageSendOptions,
         config: Config,
-    ) -> Result<VKMessageSendResponse, serde_json::Error> {
+    ) -> Result<Vec<VKMessageSendResponse>, serde_json::Error> {
+        let response = vk_api_call("messages.send", struct_to_vec(options), config)
+            .await
+            .unwrap();
+        let response = response.get("response").unwrap();
+        match response.as_i64() {
+            Some(response) => Ok(vec![VKMessageSendResponse {
+                message_id: response,
+                conversation_message_id: None,
+                peer_id: None,
+                error: None,
+            }]),
+            None => serde_json::from_value(response.clone()),
+        }
+    }
+    pub async fn create_chat(
+        options: VKMessageCreateChatOptions,
+        config: Config,
+    ) -> Result<i64, serde_json::Error> {
         serde_json::from_value(
-            vk_api_call("messages.send", struct_to_vec(options), config)
+            vk_api_call("messages.createChat", struct_to_vec(options), config)
                 .await
-                .unwrap(),
-        ).unwrap_or()
-    }
-    pub fn create_chat(options: VKMessageCreateChatOptions, config: Config) {
-        vk_api_call("messages.createChat", struct_to_vec(options), config)
-    }
-    pub fn delete(options: VKMessageDeleteOptions, config: Config) {
-        vk_api_call("messages.delete", struct_to_vec(options), config)
-    }
-    pub fn delete_chat_photo(options: VKMessageDeleteChatPhotoOptions, config: Config) {
-        vk_api_call("messages.deleteChatPhoto", struct_to_vec(options), config)
-    }
-    pub fn delete_conversation(options: VKMessageDeleteConversationOptions, config: Config) {
-        vk_api_call(
-            "messages.deleteConversation",
-            struct_to_vec(options),
-            config,
+                .unwrap()
+                .get("response")
+                .unwrap()
+                .clone(),
         )
     }
-    pub fn delete_reaction(options: VKMessageDeleteReactionOptions, config: Config) {
-        vk_api_call("messages.deleteReaction", struct_to_vec(options), config)
+    pub async fn delete(
+        options: VKMessageDeleteOptions,
+        config: Config,
+    ) -> Result<Vec<VKMessageDeleteResponse>, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call("messages.delete", struct_to_vec(options), config)
+                .await
+                .unwrap()
+                .get("response")
+                .unwrap()
+                .clone(),
+        )
     }
-    pub fn edit(options: VKMessageEditOptions, config: Config) {
-        vk_api_call("messages.edit", struct_to_vec(options), config)
+    pub async fn delete_chat_photo(
+        options: VKMessageDeleteChatPhotoOptions,
+        config: Config,
+    ) -> Result<VKMessageDeleteChatPhotoResponse, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call("messages.deleteChatPhoto", struct_to_vec(options), config)
+                .await
+                .unwrap()
+                .get("response")
+                .unwrap()
+                .clone(),
+        )
     }
-    pub fn edit_chat(options: VKMessageEditChatOptions, config: Config) {
-        vk_api_call("messages.editChat", struct_to_vec(options), config)
+    pub async fn delete_conversation(
+        options: VKMessageDeleteConversationOptions,
+        config: Config,
+    ) -> Result<VKMessageDeleteConversationResponse, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call(
+                "messages.deleteConversation",
+                struct_to_vec(options),
+                config,
+            )
+            .await
+            .unwrap()
+            .get("response")
+            .unwrap()
+            .clone(),
+        )
     }
-    pub fn get_by_conversation_message_id(
+    pub async fn delete_reaction(
+        options: VKMessageDeleteReactionOptions,
+        config: Config,
+    ) -> Result<i8, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call(
+                "messages.deleteConversation",
+                struct_to_vec(options),
+                config,
+            )
+            .await
+            .unwrap()
+            .get("response")
+            .unwrap()
+            .clone(),
+        )
+    }
+    pub async fn edit(
+        options: VKMessageEditOptions,
+        config: Config,
+    ) -> Result<i8, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call("messages.edit", struct_to_vec(options), config)
+                .await
+                .unwrap()
+                .get("response")
+                .unwrap()
+                .clone(),
+        )
+    }
+    pub async fn edit_chat(
+        options: VKMessageEditChatOptions,
+        config: Config,
+    ) -> Result<i8, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call("messages.editChat", struct_to_vec(options), config)
+                .await
+                .unwrap()
+                .get("response")
+                .unwrap()
+                .clone(),
+        )
+    }
+    pub async fn get_by_conversation_message_id(
         options: VKMessageGetByConversationMessageIdOptions,
         config: Config,
-    ) {
-        vk_api_call(
-            "messages.getByConversationMessageId",
-            struct_to_vec(options),
-            config,
+    ) -> Result<VKMessageGetByConversationMessageIdResponse, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call(
+                "messages.getByConversationMessageId",
+                struct_to_vec(options),
+                config,
+            )
+            .await
+            .unwrap()
+            .get("response")
+            .unwrap()
+            .clone(),
         )
     }
 }
@@ -96,17 +186,20 @@ pub struct VKMessageSendOptions {
     pub random_id: Option<i64>,
 }
 
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageSendResponse {
+    pub peer_id: Option<i64>,
+    pub message_id: i64,
+    pub conversation_message_id: Option<i64>,
+    pub error: Option<String>,
+}
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct VKMessageCreateChatOptions {
     pub user_ids: Option<String>,
     pub title: Option<String>,
     pub group_id: Option<i64>,
-}
-
-#[derive(Deserialize)]
-pub struct VKMessageSendResponse {
-    pub response: i64,
 }
 
 #[skip_serializing_none]
@@ -120,12 +213,45 @@ pub struct VKMessageDeleteOptions {
     pub peer_id: Option<i64>,
     pub cmids: Option<String>,
 }
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageDeleteResponse {
+    pub peer_id: Option<i64>,
+    pub message_id: Option<i64>,
+    pub conversation_message_id: Option<i64>,
+    pub response: i8,
+}
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct VKMessageDeleteChatPhotoOptions {
-    pub chat_id: Option<i64>,
-    pub group_id: Option<i64>,
+    pub chat_id: i64,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageDeleteChatPhotoResponse {
+    pub message_id: i64,
+    pub chat: Option<VKChat>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKChat {
+    pub id: i64,
+    pub type_: String,
+    pub title: String,
+    pub admin_id: i64,
+    pub users: Vec<i64>,
+    pub push_settings: VKPushSettings,
+    pub photo_50: Option<String>,
+    pub photo_100: Option<String>,
+    pub photo_200: Option<String>,
+    pub left: Option<i8>,
+    pub kicked: Option<i8>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKPushSettings {
+    pub sound: i8,
+    pub disabled_until: i64,
 }
 
 #[skip_serializing_none]
@@ -136,6 +262,13 @@ pub struct VKMessageDeleteConversationOptions {
     pub group_id: Option<i64>,
     pub offset: Option<i64>,
     pub count: Option<i64>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageDeleteConversationResponse {
+    pub peer_id: Option<i64>,
+    pub last_deleted_id: i64,
+    pub response: Option<i8>,
 }
 
 #[skip_serializing_none]
@@ -181,3 +314,12 @@ pub struct VKMessageGetByConversationMessageIdOptions {
     pub fields: Option<String>,
     pub group_id: Option<i64>,
 }
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageGetByConversationMessageIdResponse {
+    pub count: i32,
+    pub items: Vec<VKMessage>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]

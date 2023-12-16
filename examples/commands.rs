@@ -64,7 +64,9 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
                 ..Default::default()
             },
             ctx.config.clone(),
-        );
+        )
+        .await
+        .unwrap();
     } else {
         tg_api::Api::send_message(
             TGSendMessageOptions {
