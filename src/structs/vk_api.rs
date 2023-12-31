@@ -142,7 +142,7 @@ impl Messages {
     pub async fn get_by_conversation_message_id(
         options: VKMessageGetByConversationMessageIdOptions,
         config: Config,
-    ) -> Result<VKMessageGetByConversationMessageIdResponse, serde_json::Error> {
+    ) -> Result<VKMessageGetByIdResponse, serde_json::Error> {
         serde_json::from_value(
             vk_api_call(
                 "messages.getByConversationMessageId",
@@ -154,6 +154,19 @@ impl Messages {
             .get("response")
             .unwrap()
             .clone(),
+        )
+    }
+    pub async fn get_by_id(
+        options: VKMessageGetByIdOptions,
+        config: Config,
+    ) -> Result<VKMessageGetByIdResponse, serde_json::Error> {
+        serde_json::from_value(
+            vk_api_call("messages.getById", struct_to_vec(options), config)
+                .await
+                .unwrap()
+                .get("response")
+                .unwrap()
+                .clone(),
         )
     }
 }
@@ -316,10 +329,37 @@ pub struct VKMessageGetByConversationMessageIdOptions {
 }
 
 #[derive(Deserialize, Clone, Debug, Default, Serialize)]
-pub struct VKMessageGetByConversationMessageIdResponse {
+pub struct VKMessageGetByIdResponse {
     pub count: i32,
     pub items: Vec<VKMessage>,
 }
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
+pub struct VKMessageGetByIdOptions {
+    pub message_ids: String,
+    pub preview_length: Option<i64>,
+    pub extended: Option<bool>,
+    pub fields: Option<String>,
+    pub group_id: Option<i64>,
+    pub cmids: Option<i64>,
+    pub peer_id: Option<i64>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
+pub struct VKMessageGetConversationMembers {
+    pub peer_id: i64,
+    pub offset: Option<i64>,
+    pub count: Option<i64>,
+    pub fields: Option<String>,
+    pub extended: Option<bool>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageGetConversationMembersResponse {
+    pub count: i64,
+    pub items: Vec<VKMessageGetConversationMembersResponseItem>,
+    pub profiles: Option<Vec<VKMessageGetConversationMembersResponseProfile>>,
+    pub groups: Option<Vec<VKMessageGetConversationMembersResponseGroup>>,
+}
