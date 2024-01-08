@@ -8,7 +8,7 @@ use super::*;
 pub async fn api_call(
     platform: Platform,
     method: &str,
-    params: Vec<(&str, &str)>,
+    mut params: Vec<(&str, &str)>,
     config: &Config,
 ) -> Result<Value, String> {
     let url = match platform {
@@ -22,6 +22,9 @@ pub async fn api_call(
         Platform::VK => config.vk_access_token.clone(),
         Platform::Telegram => "".to_owned(),
     };
+    if platform == Platform::VK {
+        params.push(("v", &config.vk_api_version));
+    }
     let response = request(&url, &access_token, params).await;
     match response {
         Ok(response_text) => {

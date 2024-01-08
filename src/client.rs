@@ -53,7 +53,7 @@ pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     let get_server = request(
         "https://api.vk.com/method/groups.getLongPollServer",
         &config.vk_access_token.clone(),
-        vec![("group_id", &vk_group_id), ("v", "5.199")],
+        vec![("group_id", &vk_group_id), ("v", &config.vk_api_version)],
     )
     .await;
     let server: VKGetServerResponse =

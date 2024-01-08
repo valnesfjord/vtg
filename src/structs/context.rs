@@ -15,7 +15,7 @@ use crate::upload::{
 use super::config::Config;
 use super::struct_to_vec::struct_to_vec;
 use super::tg_api::TGSendMessageOptions;
-use super::vk_api::VKMessageSendOptions;
+use super::vk_api::VKMessagesSendOptions;
 
 #[derive(Debug, Clone)]
 pub struct UnifyedContext {
@@ -28,7 +28,7 @@ pub struct UnifyedContext {
     pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     pub attachments: Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>>,
-    pub config: Config,
+    pub config: Arc<Config>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,7 +57,7 @@ pub struct VKNewMessageResponse {
 
 #[derive(Clone, Debug)]
 pub struct SendOptions {
-    pub vk: VKMessageSendOptions,
+    pub vk: VKMessagesSendOptions,
     pub tg: TGSendMessageOptions,
 }
 
@@ -76,7 +76,6 @@ impl UnifyedContext {
                             ("peer_id", peer_id.as_str()),
                             ("message", message_str.as_str()),
                             ("random_id", "0"),
-                            ("v", "5.199"),
                         ],
                         &config,
                     )
@@ -116,7 +115,6 @@ impl UnifyedContext {
                             ("peer_id", peer_id.as_str()),
                             ("message", message_str.as_str()),
                             ("random_id", "0"),
-                            ("v", "5.199"),
                             ("keyboard", j.as_str()),
                         ],
                         &config,
@@ -165,7 +163,6 @@ impl UnifyedContext {
                     vk.push(("message", message));
                 }
                 vk.push(("random_id", "0"));
-                vk.push(("v", "5.199"));
                 tokio::task::spawn(async move {
                     api_call(Platform::VK, "messages.send", vk, &config)
                         .await
@@ -199,7 +196,6 @@ impl UnifyedContext {
                             ("peer_id", &peer_id.to_string()),
                             ("message", &message_str),
                             ("random_id", "0"),
-                            ("v", "5.199"),
                             (
                                 "attachment",
                                 &upload_vk_attachments(attachments, &config, peer_id)
@@ -236,7 +232,6 @@ impl UnifyedContext {
                             ("peer_id", &peer_id.to_string()),
                             ("message", &message_str),
                             ("random_id", "0"),
-                            ("v", "5.199"),
                             (
                                 "attachment",
                                 &upload_vk_attachments(attachments, &config, peer_id)

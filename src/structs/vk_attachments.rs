@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::vk::VKMessage;
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKAttachment {
     pub r#type: String,
     pub photo: Option<PhotoAttachment>,
@@ -19,7 +19,7 @@ pub struct VKAttachment {
     pub wall: Option<WallAttachment>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct PhotoAttachment {
     pub id: i64,
     pub album_id: i64,
@@ -30,7 +30,7 @@ pub struct PhotoAttachment {
     pub date: i64,
     pub access_key: Option<String>,
 }
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKPhotoSizes {
     pub r#type: String,
     pub url: String,
@@ -38,7 +38,7 @@ pub struct VKPhotoSizes {
     pub height: i32,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VideoAttachment {
     pub id: i64,
     pub owner_id: i64,
@@ -58,7 +58,7 @@ pub struct VideoAttachment {
     pub is_private: Option<i8>,
     pub access_key: Option<String>,
 }
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKVideoImage {
     pub with_padding: Option<i8>,
     pub url: String,
@@ -66,14 +66,14 @@ pub struct VKVideoImage {
     pub height: i32,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKVideoFirstFrame {
     pub url: String,
     pub width: i32,
     pub height: i32,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct AudioAttachment {
     pub id: i64,
     pub owner_id: i64,
@@ -88,7 +88,7 @@ pub struct AudioAttachment {
     pub access_key: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct DocAttachment {
     pub id: i64,
     pub owner_id: i64,
@@ -101,7 +101,7 @@ pub struct DocAttachment {
     pub access_key: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct LinkAttachment {
     pub url: String,
     pub title: String,
@@ -111,21 +111,21 @@ pub struct LinkAttachment {
     pub is_favorite: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct StickerAttachment {
     pub product_id: i64,
     pub sticker_id: i64,
     pub images: Vec<VKStickerImage>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKStickerImage {
     pub url: String,
     pub width: i32,
     pub height: i32,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct WallAttachment {
     pub id: i64,
     pub from_id: i64,
@@ -150,14 +150,14 @@ pub struct WallAttachment {
     pub postponed_id: Option<i64>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct Comments {
     pub count: i64,
     pub can_post: i8,
     pub groups_can_post: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct Likes {
     pub count: i64,
     pub user_likes: i8,
@@ -165,13 +165,13 @@ pub struct Likes {
     pub can_publish: i8,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct Reposts {
     pub count: i64,
     pub user_reposted: i8,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct Views {
     pub count: i64,
 }

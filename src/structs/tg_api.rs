@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -7,7 +9,7 @@ use super::{config::Config, context::Platform, struct_to_vec::struct_to_vec, tg:
 
 pub struct Api {}
 impl Api {
-    pub fn send_message(options: TGSendMessageOptions, config: Config) {
+    pub fn send_message(options: TGSendMessageOptions, config: Arc<Config>) {
         tokio::task::spawn(async move {
             api_call(
                 Platform::Telegram,

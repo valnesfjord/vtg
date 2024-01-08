@@ -46,7 +46,7 @@ pub async fn upload_vk_attachments(
                 let resp = api_call(
                     Platform::VK,
                     "photos.getMessagesUploadServer",
-                    vec![("peer_id", &peer_id.to_string()), ("v", "5.199")],
+                    vec![("peer_id", &peer_id.to_string())],
                     config,
                 )
                 .await?;
@@ -61,11 +61,7 @@ pub async fn upload_vk_attachments(
                 let resp = api_call(
                     Platform::VK,
                     "docs.getMessagesUploadServer",
-                    vec![
-                        ("peer_id", &peer_id.to_string()),
-                        ("type", "audio_message"),
-                        ("v", "5.199"),
-                    ],
+                    vec![("peer_id", &peer_id.to_string()), ("type", "audio_message")],
                     config,
                 )
                 .await?;
@@ -79,11 +75,7 @@ pub async fn upload_vk_attachments(
             let resp = api_call(
                 Platform::VK,
                 "docs.getMessagesUploadServer",
-                vec![
-                    ("peer_id", &peer_id.to_string()),
-                    ("type", "doc"),
-                    ("v", "5.199"),
-                ],
+                vec![("peer_id", &peer_id.to_string()), ("type", "doc")],
                 config,
             )
             .await?;
@@ -107,7 +99,6 @@ pub async fn upload_vk_attachments(
                     ("photo", &uploaded_photo.photo),
                     ("server", &uploaded_photo.server.to_string()),
                     ("hash", &uploaded_photo.hash),
-                    ("v", "5.199"),
                 ],
                 config,
             )
@@ -127,7 +118,7 @@ pub async fn upload_vk_attachments(
             let server_resp = api_call(
                 Platform::VK,
                 "docs.save",
-                vec![("file", &uploaded_doc.file), ("v", "5.199")],
+                vec![("file", &uploaded_doc.file)],
                 config,
             )
             .await?;

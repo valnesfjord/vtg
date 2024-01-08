@@ -124,6 +124,85 @@ pub struct VKPhoto {
     pub photo_200: Option<String>,
 }
 
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKProfile {
+    pub id: i64,
+    pub first_name: String,
+    pub last_name: String,
+    pub is_closed: bool,
+    pub deactivated: bool,
+    pub can_access_closed: bool,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKGroup {
+    pub id: i64,
+    pub name: String,
+    pub screen_name: String,
+    pub is_closed: bool,
+    pub deactivated: String,
+    pub is_admin: bool,
+    pub admin_level: i64,
+    pub is_member: bool,
+    pub is_advertiser: bool,
+    pub invited_by: i64,
+    pub type_: String,
+    pub photo_50: String,
+    pub photo_100: String,
+    pub photo_200: String,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKConversation {
+    pub peer: VKPeer,
+    pub in_read: i64,
+    pub out_read: i64,
+    pub unread_count: i64,
+    pub important: bool,
+    pub unanswered: bool,
+    pub push_settings: VKPushSettings,
+    pub can_write: VKCanWrite,
+    pub chat_settings: Option<VKChatSettings>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKPeer {
+    pub id: i64,
+    pub r#type: String,
+    pub local_id: Option<i64>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKPushSettings {
+    pub disabled_until: i64,
+    pub disabled_forever: bool,
+    pub no_sound: bool,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKCanWrite {
+    pub allowed: bool,
+    pub reason: i64,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKChatSettings {
+    pub owner_id: i64,
+    pub title: String,
+    pub pinned_message: Option<VKMessage>,
+    pub state: String,
+    pub photo: Option<VKChatPhoto>,
+    pub active_ids: Option<Vec<i64>>,
+    pub is_group_channel: Option<bool>,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
+pub struct VKChatPhoto {
+    pub photo_50: String,
+    pub photo_100: String,
+    pub photo_200: String,
+}
+
 impl UnifyContext for VKUpdate {
     fn unify(&self, config: &Config) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
@@ -170,7 +249,7 @@ impl UnifyContext for VKUpdate {
             r#type,
             platform: Platform::VK,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: config.to_owned(),
+            config: Arc::new(config.to_owned()),
             event,
             attachments,
         }

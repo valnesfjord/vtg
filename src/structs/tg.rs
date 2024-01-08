@@ -218,7 +218,7 @@ impl UnifyContext for TGUpdate {
             r#type,
             platform: Platform::Telegram,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: config.to_owned(),
+            config: Arc::new(config.to_owned()),
             event,
             attachments: unify_attachments(self.message.clone()),
         }
