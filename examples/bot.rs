@@ -32,16 +32,16 @@ use vtg::structs::{
 };
 
 async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
-    if ctx.r#type != EventType::MessageNew {
+    if ctx.r#type != EventType::MessageNew && ctx.r#type != EventType::CallbackQuery {
         return ctx;
     }
-    println!("{:?}", ctx.text);
     let input = Input::new(ctx.text.as_str());
     for command in COMMAND_VEC.iter() {
         if command.regex.is_match(input.clone()) {
             let mut caps = command.regex.create_captures();
             command.regex.captures(input.clone(), &mut caps);
-            return (command.function)(ctx, caps).await;
+            (command.function)(ctx.clone(), caps).await;
+            return ctx;
         }
     }
 
@@ -58,7 +58,7 @@ async fn main() {
         vk_access_token,
         vk_group_id: vk_group_id.parse().unwrap(),
         tg_access_token,
-        vk_api_version: "5.199".to_owned(), //TODO: Я ЗАБЫЛ ЧТО У НАС ВЕРСИЯ ВКАПИ КАТАЕТСЯ С НАМИ В КОНФИГЕ, МОЖНО ИСПОЛЬЗОВАТЬ (НИ РАЗУ НЕ ИСПОЛЬЗОВАЛ)
+        vk_api_version: "5.199".to_owned(),
         ..Default::default()
     };
     let mut middleware_chain = MiddlewareChain::new();

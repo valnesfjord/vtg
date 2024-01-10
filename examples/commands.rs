@@ -8,12 +8,12 @@ use vtg::{
         tg::TGMessage,
         tg_api::{self, TGSendMessageOptions},
         vk::VKMessageNew,
-        vk_api::{self, VKMessageSendOptions},
+        vk_api::{self, VKMessagesSendOptions},
     },
     upload::Attachment,
 };
 
-type CommandFunction = Pin<Box<dyn Future<Output = UnifyedContext> + Send + 'static>>;
+type CommandFunction = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 pub struct Command {
     pub regex: Regex,
     pub function: fn(UnifyedContext, Captures) -> CommandFunction,
@@ -24,7 +24,7 @@ pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
         .collect()
 }
 
-pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedContext {
+pub async fn hello_function(ctx: UnifyedContext, caps: Captures) {
     println!("{:?}", get_potential_matches(ctx.clone().text, caps));
     ctx.send_with_keyboard(
         "Hello",
@@ -42,7 +42,7 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
     ctx.send_with_options(
         "пивко @valnesfjord @cyournamec",
         SendOptions {
-            vk: VKMessageSendOptions {
+            vk: VKMessagesSendOptions {
                 disable_mentions: Some(true),
                 peer_id: Some(ctx.peer_id),
                 ..Default::default()
@@ -54,16 +54,15 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
             },
         },
     );
-
     if ctx.platform == Platform::VK {
         vk_api::Messages::send(
-            VKMessageSendOptions {
+            VKMessagesSendOptions {
                 peer_id: Some(ctx.peer_id),
                 message: Some("test".to_string()),
                 random_id: Some(0),
                 ..Default::default()
             },
-            ctx.config.clone(),
+            ctx.config,
         )
         .await
         .unwrap();
@@ -74,12 +73,13 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) -> UnifyedConte
                 text: Some("test".to_string()),
                 ..Default::default()
             },
-            ctx.config.clone(),
-        );
+            ctx.config,
+        )
+        .await
+        .unwrap();
     }
-    ctx
 }
-pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
+pub async fn ping_function(ctx: UnifyedContext) {
     ctx.send("Pong");
     println!("{:?}", ctx);
     let data = ctx.get_data::<i32>().unwrap();
@@ -102,10 +102,9 @@ pub async fn ping_function(ctx: UnifyedContext) -> UnifyedContext {
             ],
         )
         .await;
-    ctx
 }
 
-pub async fn bye_function(ctx: UnifyedContext) -> UnifyedContext {
+pub async fn bye_function(ctx: UnifyedContext) {
     ctx.send("Goodbye");
     if ctx.r#type == EventType::MessageNew {
         match ctx.platform {
@@ -119,7 +118,6 @@ pub async fn bye_function(ctx: UnifyedContext) -> UnifyedContext {
             }
         }
     }
-    ctx
 }
 
 pub fn command_vec() -> Vec<Command> {
