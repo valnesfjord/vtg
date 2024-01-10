@@ -74,7 +74,9 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) {
                 ..Default::default()
             },
             ctx.config,
-        );
+        )
+        .await
+        .unwrap();
     }
 }
 pub async fn ping_function(ctx: UnifyedContext) {

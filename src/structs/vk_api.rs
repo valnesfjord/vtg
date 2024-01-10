@@ -1044,3 +1044,4 @@ pub struct VKMessagesUnpin {
     pub peer_id: i64,
     pub group_id: Option<i64>,
 }
+// TODO: Chat photo

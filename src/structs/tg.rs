@@ -50,7 +50,7 @@ pub struct TGInlineQuery {
     pub chat_type: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default)]
 pub struct TGMessage {
     pub text: Option<String>,
     pub from: TGFrom,
@@ -102,7 +102,7 @@ pub struct TGMessageEntity {
     pub user: Option<TGUser>,
 }
 
-#[derive(Deserialize, Clone, Debug, Serialize)]
+#[derive(Deserialize, Clone, Debug, Serialize, Default)]
 pub struct TGUser {
     pub id: i64,
     pub is_bot: bool,
@@ -112,7 +112,7 @@ pub struct TGUser {
     pub language_code: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default)]
 pub struct TGFrom {
     pub id: i64,
     pub is_bot: bool,
@@ -124,7 +124,7 @@ pub struct TGFrom {
     pub added_to_attachment_menu: Option<bool>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default)]
 pub struct TGChat {
     pub id: i64,
     pub r#type: String,
