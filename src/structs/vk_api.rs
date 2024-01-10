@@ -1,17 +1,20 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{from_value, Value};
 use serde_with::skip_serializing_none;
 use tokio::task::JoinHandle;
 
-use crate::client::api_requests::api_call;
+use crate::client::requests::{files_request, FileType};
+use crate::client::{api_requests::api_call, requests::File};
 use crate::structs::vk::VKMessage;
+use crate::upload::{download_files, Attachment};
 
 use super::{
     config::Config,
     context::Platform,
     struct_to_vec::struct_to_vec,
+    upload::VKGetUploadServerResponse,
     vk::{VKConversation, VKGroup, VKProfile},
     vk_attachments::VKAttachment,
 };
@@ -343,19 +346,17 @@ impl Messages {
             .clone(),
         )
     }
-    pub fn mark_as_answered_conversation(
+    pub async fn mark_as_answered_conversation(
         options: VKMessagesMarkAsAnsweredConversation,
         config: Arc<Config>,
-    ) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call(
-                "messages.markAsAnsweredConversation",
-                struct_to_vec(options),
-                config,
-            )
-            .await
-            .unwrap();
-        })
+    ) {
+        vk_api_call(
+            "messages.markAsAnsweredConversation",
+            struct_to_vec(options),
+            config,
+        )
+        .await
+        .unwrap();
     }
     pub async fn mark_as_important(
         options: VKMessagesMarkAsImportantOptions,
@@ -370,19 +371,17 @@ impl Messages {
                 .clone(),
         )
     }
-    pub fn mark_as_important_conversation(
+    pub async fn mark_as_important_conversation(
         options: VKMessagesMarkAsImportantConversationOptions,
         config: Arc<Config>,
-    ) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call(
-                "messages.markAsImportantConversation",
-                struct_to_vec(options),
-                config,
-            )
-            .await
-            .unwrap();
-        })
+    ) {
+        vk_api_call(
+            "messages.markAsImportantConversation",
+            struct_to_vec(options),
+            config,
+        )
+        .await
+        .unwrap();
     }
     pub async fn mark_as_read(
         options: VKMessagesMarkAsRead,
@@ -410,22 +409,15 @@ impl Messages {
                 .clone(),
         )
     }
-    pub fn remove_chat_user(
-        options: VKMessagesRemoveChatUser,
-        config: Arc<Config>,
-    ) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call("messages.removeChatUser", struct_to_vec(options), config)
-                .await
-                .unwrap();
-        })
+    pub async fn remove_chat_user(options: VKMessagesRemoveChatUser, config: Arc<Config>) {
+        vk_api_call("messages.removeChatUser", struct_to_vec(options), config)
+            .await
+            .unwrap();
     }
-    pub fn restore(options: VKMessagesRestore, config: Arc<Config>) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call("messages.restore", struct_to_vec(options), config)
-                .await
-                .unwrap();
-        })
+    pub async fn restore(options: VKMessagesRestore, config: Arc<Config>) {
+        vk_api_call("messages.restore", struct_to_vec(options), config)
+            .await
+            .unwrap();
     }
     pub async fn search(
         options: VKMessagesSearch,
@@ -457,41 +449,91 @@ impl Messages {
             .clone(),
         )
     }
-    pub fn send_message_event_answer(
+    pub async fn send_message_event_answer(
         options: VKMessagesSendMessageEventAnswer,
         config: Arc<Config>,
-    ) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call(
-                "messages.sendMessageEventAnswer",
-                struct_to_vec(options),
-                config,
-            )
+    ) {
+        vk_api_call(
+            "messages.sendMessageEventAnswer",
+            struct_to_vec(options),
+            config,
+        )
+        .await
+        .unwrap();
+    }
+    pub async fn send_reaction(options: VKMessagesSendReaction, config: Arc<Config>) {
+        vk_api_call("messages.sendReaction", struct_to_vec(options), config)
             .await
             .unwrap();
-        })
     }
-    pub fn send_reaction(options: VKMessagesSendReaction, config: Arc<Config>) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call("messages.sendReaction", struct_to_vec(options), config)
-                .await
-                .unwrap();
-        })
+    pub async fn set_activity(options: VKMessagesSetActivity, config: Arc<Config>) {
+        vk_api_call("messages.setActivity", struct_to_vec(options), config)
+            .await
+            .unwrap();
     }
-    pub fn set_activity(options: VKMessagesSetActivity, config: Arc<Config>) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call("messages.setActivity", struct_to_vec(options), config)
-                .await
-                .unwrap();
-        })
+    pub async fn unpin(options: VKMessagesUnpin, config: Arc<Config>) {
+        vk_api_call("messages.unpin", struct_to_vec(options), config)
+            .await
+            .unwrap();
     }
-    pub fn unpin(options: VKMessagesUnpin, config: Arc<Config>) -> JoinHandle<()> {
-        tokio::task::spawn(async move {
-            vk_api_call("messages.unpin", struct_to_vec(options), config)
-                .await
-                .unwrap();
-        })
+    pub async fn set_chat_photo_file(
+        options: VKMessagesSetChatPhoto,
+        photo: File,
+        config: Arc<Config>,
+    ) {
+        let resp = api_call(
+            Platform::VK,
+            "photos.getChatUploadServer",
+            struct_to_vec(options),
+            &config,
+        )
+        .await
+        .unwrap();
+        let val: VKGetUploadServerResponse = from_value(resp).unwrap();
+        let upload_url = val.response.upload_url;
+        let server_resp = files_request(&upload_url, &[photo], None, Platform::VK)
+            .await
+            .unwrap();
+        let server_resp: VKMessageChatPhotoUploaded = serde_json::from_str(&server_resp).unwrap();
+        vk_api_call(
+            "messages.setChatPhoto",
+            struct_to_vec(VKMessagesSetChatPhotoFile {
+                file: server_resp.file,
+            }),
+            config,
+        );
     }
+    pub async fn set_chat_photo(
+        options: VKMessagesSetChatPhoto,
+        photo_url: String,
+        config: Arc<Config>,
+    ) {
+        let attachments = download_files(vec![Attachment {
+            url: photo_url,
+            ftype: FileType::Photo,
+        }])
+        .await;
+        Self::set_chat_photo_file(options, attachments[0].clone(), config).await;
+    }
+}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
+pub struct VKMessagesSetChatPhoto {
+    pub chat_id: i64,
+    pub crop_x: Option<i64>,
+    pub crop_y: Option<i64>,
+    pub crop_width: Option<i64>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessagesSetChatPhotoFile {
+    pub file: String,
+}
+
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
+pub struct VKMessageChatPhotoUploaded {
+    pub file: String,
 }
 
 #[skip_serializing_none]

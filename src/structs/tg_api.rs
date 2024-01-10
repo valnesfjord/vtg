@@ -5,7 +5,9 @@ use serde_json::Value;
 use serde_with::skip_serializing_none;
 use tokio::task::JoinHandle;
 
-use crate::client::api_requests::api_call;
+use crate::client::requests::files_request;
+use crate::client::{api_requests::api_call, requests::File};
+use crate::upload::Attachment;
 
 use super::{
     config::Config,
@@ -1063,6 +1065,45 @@ impl Api {
                 .clone(),
         )
     }
+    pub async fn set_chat_photo(
+        photo: Attachment,
+        chat_id: i64,
+        config: Arc<Config>,
+    ) -> Result<bool, serde_json::Error> {
+        let options = TGSetChatPhoto {
+            chat_id,
+            photo: photo.url,
+        };
+        serde_json::from_value(
+            tg_api_call("setChatPhoto", struct_to_vec(options), config)
+                .await
+                .unwrap()
+                .get("result")
+                .unwrap()
+                .clone(),
+        )
+    }
+    pub fn set_chat_photo_file(photo: File, chat_id: i64, config: Arc<Config>) {
+        tokio::task::spawn(async move {
+            files_request(
+                &format!(
+                    "https://api.telegram.org/{}/setChatPhoto",
+                    config.tg_access_token,
+                ),
+                &vec![photo],
+                Some(vec![("chat_id", &chat_id.to_string())]),
+                Platform::Telegram,
+            )
+            .await
+            .unwrap();
+        });
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
+pub struct TGSetChatPhoto {
+    pub chat_id: i64,
+    pub photo: String,
 }
 
 #[skip_serializing_none]
@@ -1466,7 +1507,6 @@ pub struct TGDeclineChatJoinRequest {
 pub struct TGDeleteChatPhoto {
     pub chat_id: i64,
 }
-// TODO: Set chat photo
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
