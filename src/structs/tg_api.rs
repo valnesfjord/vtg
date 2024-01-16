@@ -1090,7 +1090,7 @@ impl Api {
                     "https://api.telegram.org/{}/setChatPhoto",
                     config.tg_access_token,
                 ),
-                &vec![photo],
+                &[photo],
                 Some(vec![("chat_id", &chat_id.to_string())]),
                 Platform::Telegram,
             )
