@@ -133,17 +133,22 @@ pub async fn upload_vk_attachments(
                     config,
                 )
                 .await?;
-                if ftype == FileType::Audio || ftype == FileType::Voice {
-                    let message_audio: VKMessageDocumentResponse = from_value(server_resp).unwrap();
-                    let audio_message = message_audio.response.audio_message.unwrap();
-                    message_attachments.push_str(&format!(
-                        "audio_message{}_{},",
-                        audio_message.owner_id, audio_message.id
-                    ))
-                } else {
-                    let message_doc: VKMessageDocumentResponse = from_value(server_resp).unwrap();
-                    let doc = message_doc.response.doc.unwrap();
-                    message_attachments.push_str(&format!("doc{}_{},", doc.owner_id, doc.id))
+                match ftype {
+                    FileType::Audio | FileType::Voice => {
+                        let message_audio: VKMessageDocumentResponse =
+                            from_value(server_resp).unwrap();
+                        let audio_message = message_audio.response.audio_message.unwrap();
+                        message_attachments.push_str(&format!(
+                            "audio_message{}_{},",
+                            audio_message.owner_id, audio_message.id
+                        ))
+                    }
+                    _ => {
+                        let message_doc: VKMessageDocumentResponse =
+                            from_value(server_resp).unwrap();
+                        let doc = message_doc.response.doc.unwrap();
+                        message_attachments.push_str(&format!("doc{}_{},", doc.owner_id, doc.id))
+                    }
                 }
             }
         }

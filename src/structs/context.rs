@@ -100,6 +100,45 @@ impl UnifyedContext {
             }
         }
     }
+    pub fn send_with_html(&self, message: &str) {
+        let peer_id = self.peer_id.to_string();
+        let config = self.config.clone();
+        let message_str = message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                tokio::task::spawn(async move {
+                    api_call(
+                        Platform::VK,
+                        "messages.send",
+                        vec![
+                            ("peer_id", peer_id.as_str()),
+                            ("message", message_str.as_str()),
+                            ("random_id", "0"),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap()
+                });
+            }
+            Platform::Telegram => {
+                tokio::task::spawn(async move {
+                    api_call(
+                        Platform::Telegram,
+                        "sendMessage",
+                        vec![
+                            ("chat_id", peer_id.as_str()),
+                            ("text", message_str.as_str()),
+                            ("parse_mode", "HTML"),
+                        ],
+                        &config,
+                    )
+                    .await
+                    .unwrap()
+                });
+            }
+        }
+    }
     pub fn send_with_keyboard(&self, message: &str, keyboard: Keyboard) {
         let peer_id = self.peer_id.to_string();
         let config = self.config.clone();
@@ -144,6 +183,7 @@ impl UnifyedContext {
                             ("chat_id", peer_id.as_str()),
                             ("text", message_str.as_str()),
                             ("reply_markup", j.as_str()),
+                            ("parse_mode", "HTML"),
                         ],
                         &config,
                     )
