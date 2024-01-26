@@ -1,7 +1,11 @@
+use serde_json::Value;
 use std::env;
 use vtg::{
     client::start_longpoll_client,
-    structs::{context::Platform, tg_attachments::TGAttachment, vk_attachments::VKAttachment},
+    structs::{
+        context::Platform, tg_attachments::TGAttachment, vk::VKMessageNew,
+        vk_attachments::VKAttachment,
+    },
 };
 extern crate vtg;
 mod commands;
@@ -10,7 +14,7 @@ lazy_static! {
     static ref COMMAND_VEC: Vec<commands::Command> = commands::command_vec();
 }
 
-async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
+async fn catch_new_message(mut ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {
         return ctx;
     }
@@ -21,6 +25,16 @@ async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     } else {
         let attachments = ctx.get_attachments::<TGAttachment>().unwrap_or_default();
         println!("{:?}", attachments);
+    }
+    if ctx.platform == Platform::VK {
+        let event = ctx.get_event::<VKMessageNew>().unwrap();
+        if event.message.payload.is_some() {
+            let j: Value = serde_json::from_str(event.message.payload.unwrap().as_str()).unwrap();
+            let text = j.get("text");
+            if let Some(text) = text {
+                ctx.text = text.as_str().unwrap_or(ctx.text.as_str()).to_string();
+            }
+        }
     }
     ctx
 }

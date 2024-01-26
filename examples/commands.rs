@@ -1,4 +1,5 @@
 use regex_automata::{meta::Regex, util::captures::Captures};
+use serde_json::to_value;
 use std::{future::Future, pin::Pin};
 use vtg::{
     client::requests::FileType,
@@ -29,14 +30,13 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) {
     ctx.send_with_keyboard(
         "Hello",
         vtg::structs::keyboard::Keyboard::new(
-            vec![vec![KeyboardButton {
+            vec![vec![KeyboardButton::Text {
                 color: Color::Positive,
-                text: "Посмотреть".to_string(),
-                data: Some("{\"text\": \"test\"}".to_string()),
-                url: None,
+                label: "Посмотреть".to_string(),
+                data: Some(to_value("{\"text\": \"hello nigg\"}".to_string()).unwrap()),
             }]],
             true,
-            None,
+            false,
         ),
     );
     ctx.send_with_options(

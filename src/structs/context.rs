@@ -166,7 +166,7 @@ impl UnifyedContext {
                 let j: String = if !keyboard.inline {
                     serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
                         keyboard: keyboard.tg_buttons,
-                        one_time_keyboard: keyboard.one_time.unwrap(),
+                        one_time_keyboard: keyboard.one_time,
                     })
                     .unwrap()
                 } else {
