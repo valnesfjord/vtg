@@ -1,6 +1,6 @@
 use hyper::{
     header::{CONTENT_LENGTH, CONTENT_TYPE},
-    Body, Client, Method, Request,
+    Body, Client, Method, Request, Version,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -19,7 +19,7 @@ lazy_static! {
         let https = hyper_rustls::HttpsConnectorBuilder::new()
             .with_native_roots()
             .https_or_http()
-            .enable_all_versions()
+            .enable_http2()
             .build();
 
         Client::builder().build(https)
@@ -40,6 +40,7 @@ pub async fn request(
         .header("Authorization", format!("Bearer {}", access_token))
         .header(CONTENT_LENGTH, form_body.len())
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .version(Version::HTTP_2)
         .body(Body::from(form_body))
         .unwrap();
     let res = CLIENT
@@ -56,6 +57,7 @@ pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
     let req = Request::builder()
         .method(Method::GET)
         .uri(url)
+        .version(Version::HTTP_2)
         .body(Body::empty())
         .unwrap();
     let res = CLIENT
@@ -180,6 +182,7 @@ pub async fn files_request(
             CONTENT_TYPE,
             format!("multipart/form-data; boundary={}", boundary),
         )
+        .version(Version::HTTP_2)
         .body(body.into())
         .unwrap();
     let res = CLIENT.request(req).await?;
