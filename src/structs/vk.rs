@@ -249,7 +249,7 @@ impl UnifyContext for VKUpdate {
             r#type,
             platform: Platform::VK,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: Arc::new(config.to_owned()),
+            config: Arc::new(config.clone()),
             event,
             attachments,
         }

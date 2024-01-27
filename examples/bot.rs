@@ -80,4 +80,5 @@ async fn main() {
     middleware_chain.add_middleware(|ctx| Box::pin(hears_middleware(ctx)));
 
     start_longpoll_client(middleware_chain, config).await;
+    
 }
