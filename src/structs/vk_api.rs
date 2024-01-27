@@ -614,7 +614,7 @@ pub struct VKMessagesDeleteChatPhotoResponse {
 #[derive(Deserialize, Clone, Debug, Default, Serialize)]
 pub struct VKChat {
     pub id: i64,
-    pub type_: String,
+    pub r#type: String,
     pub title: String,
     pub admin_id: i64,
     pub users: Vec<i64>,

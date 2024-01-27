@@ -81,7 +81,7 @@ pub struct VKGeo {
     pub coordinates: Option<VKCoordinates>,
     pub place: Option<VKPlace>,
     pub showmap: Option<bool>,
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug, Serialize, Default)]
@@ -100,7 +100,7 @@ pub struct VKPlace {
     pub icon: Option<String>,
     pub country: Option<String>,
     pub city: Option<String>,
-    pub type_: Option<i64>,
+    pub r#type: Option<i64>,
     pub group_id: Option<i64>,
     pub group_photo: Option<String>,
     pub checkins: Option<i64>,
@@ -146,7 +146,7 @@ pub struct VKGroup {
     pub is_member: bool,
     pub is_advertiser: bool,
     pub invited_by: i64,
-    pub type_: String,
+    pub r#type: String,
     pub photo_50: String,
     pub photo_100: String,
     pub photo_200: String,

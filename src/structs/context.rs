@@ -194,7 +194,6 @@ impl UnifyedContext {
         }
     }
     pub fn send_with_options(&self, message: &'static str, options: SendOptions) {
-        println!("{:?}", options);
         let config = self.config.clone();
         match self.platform {
             Platform::VK => {

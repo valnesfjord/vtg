@@ -109,9 +109,10 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
 
     let (tx, rx): (Sender<UnifyedContext>, Receiver<UnifyedContext>) = channel(100);
     let rx = Arc::new(Mutex::new(rx));
+    let middleware = Arc::new(middleware);
     for _i in 0..4 {
         let rx_clone = Arc::clone(&rx);
-        let middleware_clone = middleware.clone();
+        let middleware_clone = Arc::clone(&middleware);
         tokio::task::spawn(async move {
             loop {
                 if let Some(update) = rx_clone.lock().await.recv().await {
