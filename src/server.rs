@@ -20,8 +20,13 @@ struct Cleanup {
 
 impl Drop for Cleanup {
     fn drop(&mut self) {
-        let _ = api_call(Platform::Telegram, "deleteWebhook", vec![], &self.config);
-        info!("Shutting down...");
+        let config = Arc::clone(&self.config);
+        tokio::task::spawn(async move {
+            api_call(Platform::Telegram, "deleteWebhook", vec![], &config)
+                .await
+                .unwrap();
+            info!("Shutting down...");
+        });
     }
 }
 async fn handle_request(
@@ -32,7 +37,7 @@ async fn handle_request(
     let uri = req.uri();
     let settings = config.callback.as_ref().unwrap();
     match uri.path() {
-        path if path == &format!("/{}/vk", settings.path) => {
+        path if path == format!("/{}/vk", settings.path) => {
             let bytes = hyper::body::to_bytes(req.into_body()).await.unwrap();
             let update: VKUpdate =
                 serde_json::from_str(String::from_utf8(bytes.to_vec()).unwrap().as_str()).unwrap();
@@ -47,7 +52,7 @@ async fn handle_request(
             tx.send(update.unify(&config)).await.unwrap();
             Response::builder().status(200)
         }
-        path if path == &format!("/{}/telegram", settings.path) => {
+        path if path == format!("/{}/telegram", settings.path) => {
             let headers = req.headers();
             let secret_token = match headers.get("X-Telegram-Bot-Api-Secret-Token") {
                 Some(value) => value.to_str().unwrap(),

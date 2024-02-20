@@ -192,7 +192,7 @@ impl Keyboard {
                                 switch_inline_query_choosen_chat: switch_inline_query_choosen_chat
                                     .clone(),
                                 callback_game: callback_game.clone(),
-                                pay: pay.clone(),
+                                pay: *pay,
                                 ..Default::default()
                             },
                             KeyboardButton::TGKeyboardButton {
@@ -206,8 +206,8 @@ impl Keyboard {
                             } => TGKeyboardButton {
                                 text: text.clone(),
                                 request_chat: request_chat.clone(),
-                                request_contact: request_contact.clone(),
-                                request_location: request_location.clone(),
+                                request_contact: *request_contact,
+                                request_location: *request_location,
                                 request_poll: request_poll.clone(),
                                 request_users: request_users.clone(),
                                 web_app: web_app.clone(),
@@ -217,8 +217,8 @@ impl Keyboard {
                                 remove_keyboard,
                                 selective,
                             } => TGKeyboardButton {
-                                remove_keyboard: Some(remove_keyboard.clone()),
-                                selective: selective.clone(),
+                                remove_keyboard: Some(*remove_keyboard),
+                                selective: *selective,
                                 ..Default::default()
                             },
                             KeyboardButton::TGForceReply {
@@ -226,8 +226,8 @@ impl Keyboard {
                                 selective,
                                 input_field_placeholder,
                             } => TGKeyboardButton {
-                                force_reply: Some(force_reply.clone()),
-                                selective: selective.clone(),
+                                force_reply: Some(*force_reply),
+                                selective: *selective,
                                 input_field_placeholder: input_field_placeholder.clone(),
                                 ..Default::default()
                             },
