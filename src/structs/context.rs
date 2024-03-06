@@ -165,13 +165,13 @@ impl UnifyedContext {
             Platform::Telegram => {
                 let j: String = if !keyboard.inline {
                     serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
-                        keyboard: keyboard.tg_buttons,
+                        keyboard: keyboard.tg_buttons.unwrap(),
                         one_time_keyboard: keyboard.one_time,
                     })
                     .unwrap()
                 } else {
                     serde_json::to_string(&keyboard::InlineKeyboardMarkup {
-                        inline_keyboard: keyboard.tg_buttons,
+                        inline_keyboard: keyboard.tg_buttons.unwrap(),
                     })
                     .unwrap()
                 };

@@ -8,8 +8,8 @@ use super::tg_api::TGChatAdministratorRights;
 pub struct Keyboard {
     pub inline: bool,
     pub one_time: bool,
-    pub vk_buttons: VKKeyboard,
-    pub tg_buttons: Vec<Vec<TGKeyboardButton>>,
+    pub vk_buttons: Option<VKKeyboard>,
+    pub tg_buttons: Option<Vec<Vec<TGKeyboardButton>>>,
 }
 #[derive(Serialize, Clone, Debug)]
 pub struct VKKeyboard {

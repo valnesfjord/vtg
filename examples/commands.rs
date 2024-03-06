@@ -37,6 +37,7 @@ pub async fn hello_function(ctx: UnifyedContext, caps: Captures) {
             }]],
             true,
             false,
+            &ctx.platform,
         ),
     );
     ctx.send_with_options(
