@@ -2,7 +2,9 @@ pub mod api_requests;
 pub mod requests;
 use log::{debug, info, log_enabled};
 use requests::*;
+use std::time::Duration;
 use std::{panic, sync::Arc};
+use tokio::time::interval;
 use tokio::{select, sync::Mutex};
 use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
@@ -124,6 +126,7 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
             }
         });
     }
+    let mut interval = interval(Duration::from_secs(600));
     loop {
         let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx, &config);
         let tg_task = get_tg_updates(&mut offset, &tx, &config);
@@ -131,6 +134,12 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
             _ = vk_task => {
             },
             _ = tg_task => {
+            },
+            _ = interval.tick() => {
+            let vk_settings = get_vk_settings(&config).await;
+            server = vk_settings.response.server;
+            key = vk_settings.response.key;
+            ts = vk_settings.response.ts.parse::<i64>().unwrap();
             },
         }
     }

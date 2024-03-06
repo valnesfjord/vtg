@@ -167,7 +167,7 @@ impl Color {
 #[derive(Serialize, Clone, Debug, Default)]
 pub struct TGKeyboardButton {
     pub text: String,
-    pub callback_data: Option<Value>,
+    pub callback_data: Option<String>,
     pub url: Option<String>,
     pub web_app: Option<TGInlineWebApp>,
     pub login: Option<TGInlineLogin>,

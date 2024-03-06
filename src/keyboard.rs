@@ -138,7 +138,8 @@ impl Keyboard {
                         .map(|b| match b {
                             KeyboardButton::Text { label, data, .. } => TGKeyboardButton {
                                 text: label.clone(),
-                                callback_data: data.clone(),
+                                callback_data: serde_json::from_value(data.clone().unwrap())
+                                    .unwrap(),
                                 ..Default::default()
                             },
                             KeyboardButton::Url {
@@ -146,27 +147,32 @@ impl Keyboard {
                             } => TGKeyboardButton {
                                 text: label.clone(),
                                 url: Some(link.clone()),
-                                callback_data: data.clone(),
+                                callback_data: serde_json::from_value(data.clone().unwrap())
+                                    .unwrap(),
                                 ..Default::default()
                             },
                             KeyboardButton::Location { label, data, .. } => TGKeyboardButton {
                                 text: label.clone(),
-                                callback_data: data.clone(),
+                                callback_data: serde_json::from_value(data.clone().unwrap())
+                                    .unwrap(),
                                 ..Default::default()
                             },
                             KeyboardButton::VKPay { label, data, .. } => TGKeyboardButton {
                                 text: label.clone(),
-                                callback_data: data.clone(),
+                                callback_data: serde_json::from_value(data.clone().unwrap())
+                                    .unwrap(),
                                 ..Default::default()
                             },
                             KeyboardButton::VKApp { label, data, .. } => TGKeyboardButton {
                                 text: label.clone(),
-                                callback_data: data.clone(),
+                                callback_data: serde_json::from_value(data.clone().unwrap())
+                                    .unwrap(),
                                 ..Default::default()
                             },
                             KeyboardButton::Callback { label, data, .. } => TGKeyboardButton {
                                 text: label.clone(),
-                                callback_data: data.clone(),
+                                callback_data: serde_json::from_value(data.clone().unwrap())
+                                    .unwrap(),
                                 ..Default::default()
                             },
                             KeyboardButton::TGInline {
@@ -183,7 +189,12 @@ impl Keyboard {
                             } => TGKeyboardButton {
                                 text: text.clone(),
                                 url: url.clone(),
-                                callback_data: callback_data.clone(),
+                                callback_data: Some(
+                                    serde_json::from_value::<String>(
+                                        callback_data.clone().unwrap(),
+                                    )
+                                    .unwrap_or("".to_string()),
+                                ),
                                 web_app: web_app.clone(),
                                 login: login.clone(),
                                 switch_inline_query: switch_inline_query.clone(),
