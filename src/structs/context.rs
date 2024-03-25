@@ -31,8 +31,9 @@ pub struct UnifyedContext {
     pub config: Arc<Config>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum Platform {
+    #[default]
     VK,
     Telegram,
 }
@@ -61,7 +62,169 @@ pub struct SendOptions {
     pub tg: TGSendMessageOptions,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct MessageBuilder {
+    pub message: String,
+    pub chat_id: i64,
+    pub config: Arc<Config>,
+    pub platform: Platform,
+    pub vk_options: Option<VKMessagesSendOptions>,
+    pub tg_options: Option<TGSendMessageOptions>,
+    pub keyboard: Option<Keyboard>,
+    pub attachments: Option<Vec<Attachment>>,
+    pub files: Option<Vec<File>>,
+    pub parse_mode: Option<String>,
+}
+impl MessageBuilder {
+    pub fn vk_options(&self, options: VKMessagesSendOptions) -> MessageBuilder {
+        MessageBuilder {
+            vk_options: Some(options),
+            ..self.clone()
+        }
+    }
+    pub fn tg_options(&self, options: TGSendMessageOptions) -> MessageBuilder {
+        MessageBuilder {
+            tg_options: Some(options),
+            ..self.clone()
+        }
+    }
+    pub fn keyboard(&self, keyboard: Keyboard) -> MessageBuilder {
+        MessageBuilder {
+            keyboard: Some(keyboard),
+            ..self.clone()
+        }
+    }
+    pub fn attachments(&self, attachments: Vec<Attachment>) -> MessageBuilder {
+        MessageBuilder {
+            attachments: Some(attachments),
+            ..self.clone()
+        }
+    }
+    pub fn files(&self, files: Vec<File>) -> MessageBuilder {
+        MessageBuilder {
+            files: Some(files),
+            ..self.clone()
+        }
+    }
+    pub fn parse_mode(&self, parse_mode: &str) -> MessageBuilder {
+        MessageBuilder {
+            parse_mode: Some(parse_mode.to_owned()),
+            ..self.clone()
+        }
+    }
+    pub async fn send(&self) {
+        let peer_id = self.chat_id;
+        let config = self.config.clone();
+        let message_str = self.message.to_owned();
+        match self.platform {
+            Platform::VK => {
+                let vk_options = self.vk_options.clone().unwrap_or_default();
+                let keyboard = self.keyboard.clone();
+                let attachments = self.make_vk_attachments(config.clone(), peer_id).await;
+                let attachment = attachments.unwrap_or("".to_string());
+                tokio::task::spawn(async move {
+                    let mut vk = struct_to_vec(vk_options.clone());
+                    if vk_options.message.is_none() || vk_options.message.unwrap().is_empty() {
+                        vk.push(("message", message_str.as_str()));
+                    }
+                    let peer_id_str = peer_id.to_string();
+                    if vk_options.peer_id.is_none() || vk_options.peer_id.unwrap() == 0 {
+                        vk.push(("peer_id", &peer_id_str));
+                    }
+                    vk.push(("random_id", "0"));
+                    let j;
+                    if keyboard.is_some() && vk_options.keyboard.is_none() {
+                        j = serde_json::to_string(&keyboard.clone().unwrap().vk_buttons).unwrap();
+                        vk.push(("keyboard", j.as_str()));
+                    }
+                    if !attachment.is_empty() {
+                        vk.push(("attachment", &attachment));
+                    }
+                    api_call(Platform::VK, "messages.send", vk, &config.clone())
+                        .await
+                        .unwrap()
+                });
+            }
+            Platform::Telegram => {
+                let tg_options = self.tg_options.clone().unwrap_or_default();
+                let keyboard = self.keyboard.clone();
+                let parse_mode = self.parse_mode.clone().unwrap_or("HTML".to_string());
+                let attachments = self.attachments.clone().unwrap_or_default();
+                let files = self.files.clone().unwrap_or_default();
+                tokio::task::spawn(async move {
+                    let mut tg = struct_to_vec(tg_options.clone());
+                    if tg_options.text.is_none() || tg_options.text.unwrap().is_empty() {
+                        tg.push(("text", message_str.as_str()));
+                    }
+                    let peer_id_str = peer_id.to_string();
+                    if tg_options.chat_id.is_none() || tg_options.chat_id.unwrap() == 0 {
+                        tg.push(("chat_id", &peer_id_str));
+                    }
+                    let j: String;
+                    if keyboard.is_some() && tg_options.reply_markup.is_none() {
+                        j = if !keyboard.clone().unwrap().inline {
+                            serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
+                                keyboard: keyboard.clone().unwrap().tg_buttons.unwrap(),
+                                one_time_keyboard: keyboard.clone().unwrap().one_time,
+                            })
+                            .unwrap()
+                        } else {
+                            serde_json::to_string(&keyboard::InlineKeyboardMarkup {
+                                inline_keyboard: keyboard.clone().unwrap().tg_buttons.unwrap(),
+                            })
+                            .unwrap()
+                        };
+                        tg.push(("reply_markup", j.as_str()));
+                    }
+                    if parse_mode != "HTML" {
+                        tg.push(("parse_mode", parse_mode.as_str()));
+                    }
+                    if attachments.is_empty() && files.is_empty() {
+                        api_call(Platform::Telegram, "sendMessage", tg, &config.clone())
+                            .await
+                            .unwrap();
+                        return;
+                    }
+                    if attachments.is_empty() {
+                        send_tg_attachments(attachments, &config, peer_id, &message_str).await;
+                        return;
+                    }
+                    send_tg_attachment_files(files, &config, peer_id, &message_str).await;
+                });
+            }
+        }
+    }
+    async fn make_vk_attachments(&self, config: Arc<Config>, peer_id: i64) -> Option<String> {
+        let attachments = self.attachments.clone().unwrap_or_default();
+        let files = self.files.clone().unwrap_or_default();
+        if attachments.is_empty() && files.is_empty() {
+            return None;
+        }
+        if !attachments.is_empty() {
+            let attachments = download_files(attachments).await;
+            return Some(
+                upload_vk_attachments(attachments, &config, peer_id)
+                    .await
+                    .unwrap(),
+            );
+        }
+        Some(
+            upload_vk_attachments(files, &config, peer_id)
+                .await
+                .unwrap(),
+        )
+    }
+}
+
 impl UnifyedContext {
+    pub fn message(&self, message: &str) -> MessageBuilder {
+        MessageBuilder {
+            message: message.to_owned(),
+            chat_id: self.peer_id,
+            config: self.config.clone(),
+            ..Default::default()
+        }
+    }
     pub fn send(&self, message: &str) {
         let peer_id = self.peer_id.to_string();
         let config = self.config.clone();

@@ -118,10 +118,9 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
                         middleware_clone.execute(update).await;
                         let end_time = Instant::now();
                         let elapsed_time = end_time.duration_since(start_time);
-                        debug!("Processing time: {:?}", elapsed_time);
-                    } else {
-                        middleware_clone.execute(update).await;
+                        return debug!("Processing time: {:?}", elapsed_time);
                     }
+                    middleware_clone.execute(update).await;
                 }
             }
         });
