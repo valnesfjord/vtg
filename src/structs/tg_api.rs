@@ -1090,7 +1090,7 @@ impl Api {
                     "https://api.telegram.org/{}/setChatPhoto",
                     config.tg_access_token,
                 ),
-                &vec![photo],
+                &[photo],
                 Some(vec![("chat_id", &chat_id.to_string())]),
                 Platform::Telegram,
             )
@@ -1252,7 +1252,7 @@ pub struct TGSendPoll {
     pub question: String,
     pub options: Vec<String>,
     pub is_anonymous: Option<bool>,
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
     pub allows_multiple_answers: Option<bool>,
     pub correct_option_id: Option<i64>,
     pub explanation: Option<String>,

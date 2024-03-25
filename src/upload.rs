@@ -41,98 +41,115 @@ pub async fn upload_vk_attachments(
         doc: "".to_string(),
     };
     for attachment in attachments {
-        let server: String = if attachment.ftype == FileType::Photo {
-            if upload_servers.photo.is_empty() {
-                let resp = api_call(
-                    Platform::VK,
-                    "photos.getMessagesUploadServer",
-                    vec![("peer_id", &peer_id.to_string())],
-                    config,
-                )
-                .await?;
-                let val: VKGetUploadServerResponse = from_value(resp).unwrap();
-                upload_servers.photo = val.response.upload_url;
-                upload_servers.photo.clone()
-            } else {
-                upload_servers.photo.clone()
+        let server: &str = match attachment.ftype {
+            FileType::Photo => {
+                if upload_servers.photo.is_empty() {
+                    let val: VKGetUploadServerResponse = from_value(
+                        api_call(
+                            Platform::VK,
+                            "photos.getMessagesUploadServer",
+                            vec![("peer_id", &peer_id.to_string())],
+                            config,
+                        )
+                        .await?,
+                    )
+                    .unwrap();
+                    upload_servers.photo = val.response.upload_url;
+                }
+                &upload_servers.photo
             }
-        } else if attachment.ftype == FileType::Audio || attachment.ftype == FileType::Voice {
-            if upload_servers.audio.is_empty() {
-                let resp = api_call(
-                    Platform::VK,
-                    "docs.getMessagesUploadServer",
-                    vec![("peer_id", &peer_id.to_string()), ("type", "audio_message")],
-                    config,
-                )
-                .await?;
-                let val: VKGetUploadServerResponse = from_value(resp).unwrap();
-                upload_servers.doc = val.response.upload_url;
-                upload_servers.doc.clone()
-            } else {
-                upload_servers.audio.clone()
+            FileType::Audio | FileType::Voice => {
+                if upload_servers.audio.is_empty() {
+                    let val: VKGetUploadServerResponse = from_value(
+                        api_call(
+                            Platform::VK,
+                            "docs.getMessagesUploadServer",
+                            vec![("peer_id", &peer_id.to_string()), ("type", "audio_message")],
+                            config,
+                        )
+                        .await?,
+                    )
+                    .unwrap();
+                    upload_servers.audio = val.response.upload_url;
+                }
+                &upload_servers.audio
             }
-        } else if upload_servers.doc.is_empty() {
-            let resp = api_call(
-                Platform::VK,
-                "docs.getMessagesUploadServer",
-                vec![("peer_id", &peer_id.to_string()), ("type", "doc")],
-                config,
-            )
-            .await?;
-            let val: VKGetUploadServerResponse = from_value(resp).unwrap();
-            upload_servers.doc = val.response.upload_url;
-            upload_servers.doc.clone()
-        } else {
-            upload_servers.doc.clone()
+            _ => {
+                if upload_servers.doc.is_empty() {
+                    let val: VKGetUploadServerResponse = from_value(
+                        api_call(
+                            Platform::VK,
+                            "docs.getMessagesUploadServer",
+                            vec![("peer_id", &peer_id.to_string()), ("type", "doc")],
+                            config,
+                        )
+                        .await?,
+                    )
+                    .unwrap();
+                    upload_servers.doc = val.response.upload_url;
+                }
+                &upload_servers.doc
+            }
         };
 
-        if attachment.ftype == FileType::Photo {
-            let server_resp = files_request(&server, &[attachment], None, Platform::VK)
-                .await
+        match attachment.ftype {
+            FileType::Photo => {
+                let uploaded_photo: VKMessagePhotoUploaded = serde_json::from_str(
+                    &files_request(server, &[attachment], None, Platform::VK)
+                        .await
+                        .unwrap(),
+                )
                 .unwrap();
-            let uploaded_photo: VKMessagePhotoUploaded =
-                serde_json::from_str(&server_resp).unwrap();
-            let server_resp = api_call(
-                Platform::VK,
-                "photos.saveMessagesPhoto",
-                vec![
-                    ("photo", &uploaded_photo.photo),
-                    ("server", &uploaded_photo.server.to_string()),
-                    ("hash", &uploaded_photo.hash),
-                ],
-                config,
-            )
-            .await?;
-            let message_photo: VKMessagePhotoResponse = from_value(server_resp).unwrap();
-            message_attachments.push_str(&format!(
-                "photo{}_{},",
-                message_photo.response[0].owner_id, message_photo.response[0].id
-            ))
-        } else {
-            let ftype = attachment.ftype.clone();
-            let server_resp = files_request(&server, &[attachment], None, Platform::VK)
-                .await
+                let message_photo: VKMessagePhotoResponse = from_value(
+                    api_call(
+                        Platform::VK,
+                        "photos.saveMessagesPhoto",
+                        vec![
+                            ("photo", &uploaded_photo.photo),
+                            ("server", &uploaded_photo.server.to_string()),
+                            ("hash", &uploaded_photo.hash),
+                        ],
+                        config,
+                    )
+                    .await?,
+                )
                 .unwrap();
-            let uploaded_doc: VKMessageDocumentUploaded =
-                serde_json::from_str(&server_resp).unwrap();
-            let server_resp = api_call(
-                Platform::VK,
-                "docs.save",
-                vec![("file", &uploaded_doc.file)],
-                config,
-            )
-            .await?;
-            if ftype == FileType::Audio || ftype == FileType::Voice {
-                let message_audio: VKMessageDocumentResponse = from_value(server_resp).unwrap();
-                let audio_message = message_audio.response.audio_message.unwrap();
                 message_attachments.push_str(&format!(
-                    "audio_message{}_{},",
-                    audio_message.owner_id, audio_message.id
+                    "photo{}_{},",
+                    message_photo.response[0].owner_id, message_photo.response[0].id
                 ))
-            } else {
-                let message_doc: VKMessageDocumentResponse = from_value(server_resp).unwrap();
-                let doc = message_doc.response.doc.unwrap();
-                message_attachments.push_str(&format!("doc{}_{},", doc.owner_id, doc.id))
+            }
+            _ => {
+                let ftype = attachment.ftype.clone();
+                let server_resp = files_request(server, &[attachment], None, Platform::VK)
+                    .await
+                    .unwrap();
+                let uploaded_doc: VKMessageDocumentUploaded =
+                    serde_json::from_str(&server_resp).unwrap();
+                let server_resp = api_call(
+                    Platform::VK,
+                    "docs.save",
+                    vec![("file", &uploaded_doc.file)],
+                    config,
+                )
+                .await?;
+                match ftype {
+                    FileType::Audio | FileType::Voice => {
+                        let message_audio: VKMessageDocumentResponse =
+                            from_value(server_resp).unwrap();
+                        let audio_message = message_audio.response.audio_message.unwrap();
+                        message_attachments.push_str(&format!(
+                            "audio_message{}_{},",
+                            audio_message.owner_id, audio_message.id
+                        ))
+                    }
+                    _ => {
+                        let message_doc: VKMessageDocumentResponse =
+                            from_value(server_resp).unwrap();
+                        let doc = message_doc.response.doc.unwrap();
+                        message_attachments.push_str(&format!("doc{}_{},", doc.owner_id, doc.id))
+                    }
+                }
             }
         }
     }
