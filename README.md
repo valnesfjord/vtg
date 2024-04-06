@@ -1,9 +1,8 @@
 # VTG - dual-platform bots library
 
 <p align="center">
-  <img src="https://github.com/valnesfjord/vtg/blob/dev/vtg.jpeg" width="200">
+  <img src="https://github.com/valnesfjord/vtg/blob/master/vtg.jpeg" width="200">
 </p>
-
 VTG is a fully functional library for creating bots for both VK and Telegram. Presents unified context and methods, for comfortable work with dual-platform bots.
 
 ## Features
@@ -87,7 +86,7 @@ async fn main() {
 
 ## Examples
 
-You can find example bot in the [examples folder](https://github.com/valnesfjord/vtg/tree/dev/examples)
+You can find example bot in the [examples folder](https://github.com/valnesfjord/vtg/tree/master/examples)
 
 ## Documentation
 
