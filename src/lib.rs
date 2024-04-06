@@ -34,7 +34,7 @@
 //!let config = Config {
 //!        vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
 //!        vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
-//!        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
+//!        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(), // token stats with bot, like: bot1234567890:ABCDEFGHIJKL
 //!        vk_api_version: "5.199".to_owned(),
 //!        ..Default::default()
 //!    };
@@ -65,7 +65,7 @@
 //!    let config = Config {
 //!        vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
 //!        vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
-//!        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
+//!        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(), // token stats with bot, like: bot1234567890:ABCDEFGHIJKL
 //!        vk_api_version: "5.199".to_owned(),
 //!        callback: Some(CallbackSettings {
 //!            port: 1234,

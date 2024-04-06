@@ -34,7 +34,7 @@ pub struct CallbackSettings {
 ///    vk_access_token: "VK_ACCESS_TOKEN".to_string(),
 ///    vk_group_id: 123456789,
 ///    vk_api_version: "5.199".to_string(),
-///    tg_access_token: "TG_ACCESS_TOKEN".to_string(),
+///    tg_access_token: "TG_ACCESS_TOKEN".to_string(), // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
 ///    ..Default::default()
 /// };
 /// ```
@@ -44,7 +44,7 @@ pub struct CallbackSettings {
 /// let config = Config {
 ///    vk_access_token: "VK_ACCESS_TOKEN".to_string(),
 ///    vk_group_id: 123456789,
-///    tg_access_token: "TG_ACCESS_TOKEN".to_string(),
+///    tg_access_token: "TG_ACCESS_TOKEN".to_string(), // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
 ///    vk_api_version: "5.199".to_string(),
 ///    callback: Some(CallbackSettings {
 ///        port: 1234,

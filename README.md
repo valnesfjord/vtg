@@ -35,7 +35,7 @@ async fn main() {
     let config = Config {
         vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
         vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
-        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
+        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(), // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
         vk_api_version: "5.199".to_owned(),
         ..Default::default()
     };
@@ -68,7 +68,7 @@ async fn main() {
     let config = Config {
         vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
         vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
-        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
+        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(), // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
         vk_api_version: "5.199".to_owned(),
         callback: Some(CallbackSettings {
             port: 1234,
@@ -87,6 +87,10 @@ async fn main() {
 ## Examples
 
 You can find example bot in the [examples folder](https://github.com/valnesfjord/vtg/tree/master/examples)
+
+## Try bot, that works with vtg
+
+You can try test bot, that works in actual version of vtg: [tg](https://t.me/deformation_bot), [vk](https://vk.me/testdeformation)
 
 ## Documentation
 

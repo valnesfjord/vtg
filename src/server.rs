@@ -111,7 +111,7 @@ async fn handle_request(
 ///async fn main() {
 ///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
 ///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
-///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap();
+///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap(); // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
 ///    let config = Config {
 ///        vk_access_token,
 ///        vk_group_id: vk_group_id.parse().unwrap(),
