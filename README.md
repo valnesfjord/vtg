@@ -103,6 +103,10 @@ You can find the documentation [here](https://docs.rs/vtg)
 -   [ ] Add VK and TG API documentation
 -   [ ] Add more features (like more API coverage, etc)
 
+## Contact the maintainer
+
+Telegram: @valnesfjord Discord: valnesfjord VK: https://vk.com/cyournamec
+
 ## Contribution
 
 Contributions are always welcome! If you have any ideas, suggestions, or issues, feel free to contribute. You can fork the repository and create a pull request with your changes, or create an issue if you find any bugs or have suggestions for improvements.
