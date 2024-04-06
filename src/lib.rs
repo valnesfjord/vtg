@@ -19,13 +19,13 @@
 //!```
 //!use std::env;
 //!use vtg::{
-//!    server::start_longpoll_client,
+//!    client::start_longpoll_client,
 //!    structs::{
 //!        config::Config,
 //!        context::UnifyedContext,
 //!        middleware::MiddlewareChain,
 //!    },
-//!}
+//!};
 //!async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 //!    ctx
 //!}

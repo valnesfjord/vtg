@@ -65,6 +65,7 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 async fn main() {
     env::set_var("RUST_LOG", "vtg");
     env_logger::init();
+
     let config = Config {
         vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
         vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),

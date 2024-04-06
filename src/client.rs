@@ -113,13 +113,13 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
 ///```
 ///use std::env;
 ///use vtg::{
-///    server::start_longpoll_client,
+///    client::start_longpoll_client,
 ///    structs::{
 ///        config::Config,
 ///        context::UnifyedContext,
 ///        middleware::MiddlewareChain,
 ///    },
-///}
+///};
 ///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 ///    ctx
 ///}
