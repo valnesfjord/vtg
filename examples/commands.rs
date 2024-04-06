@@ -2,7 +2,7 @@ use regex_automata::{meta::Regex, util::captures::Captures};
 use serde_json::to_value;
 use std::{future::Future, pin::Pin};
 use vtg::{
-    client::requests::FileType,
+    client::requests::{File, FileType},
     structs::{
         context::{EventType, Platform, SendOptions, UnifyedContext},
         keyboard::{Color, KeyboardButton},
@@ -86,6 +86,17 @@ pub async fn ping_function(ctx: UnifyedContext) {
     let data = ctx.get_data::<i32>().unwrap();
     println!("{:?}", data);
 
+    ctx.send_attachment_files(
+        "пива бы",
+        vec![File {
+            filename: "pivo.jpg".to_string(),
+            content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo2.jpg")
+                .await
+                .unwrap(),
+            ftype: FileType::Photo,
+        }],
+    )
+    .await;
     ctx.send_attachments(
             "attachments test",
             vec![Attachment {
@@ -102,6 +113,27 @@ pub async fn ping_function(ctx: UnifyedContext) {
             },
             ],
         )
+        .await;
+    ctx.message("пива бы.")
+        .keyboard(vtg::structs::keyboard::Keyboard::new(
+            vec![vec![KeyboardButton::Text {
+                color: Color::Positive,
+                label: "Посмотреть".to_string(),
+                data: Some(to_value("{\"text\": \"hello\"}".to_string()).unwrap()),
+            }]],
+            true,
+            false,
+            &ctx.platform,
+        ))
+        .vk_options(vk_api::VKMessagesSendOptions {
+            disable_mentions: Some(true),
+            ..Default::default()
+        })
+        .tg_options(tg_api::TGSendMessageOptions {
+            disable_notification: Some(true),
+            ..Default::default()
+        })
+        .send()
         .await;
 }
 

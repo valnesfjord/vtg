@@ -1,7 +1,15 @@
 [package]
 name = "vtg"
-version = "0.6.0"
+version = "1.0.0"
 edition = "2021"
+authors = ["Vyacheslav Shteyn <ms.vana32@gmail.com>"]
+license = "MIT"
+description = "Library for creating VK and Telegram bots"
+readme = "README.md"
+homepage = "https://github.com/valnesfjord/vtg"
+repository = "https://github.com/valnesfjord/vtg"
+keywords = ["bots", "vk", "telegram", "api", "tg", "dual-platform"]
+categories = ["web-programming", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

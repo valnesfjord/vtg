@@ -15,6 +15,22 @@ impl Default for MiddlewareChain {
         MiddlewareChain::new()
     }
 }
+/// MiddlewareChain is a struct that stores middlewares and executes them in order
+///
+/// # Examples
+///```
+///use vtg::{
+///    structs::{
+///        context::UnifyedContext,
+///        middleware::MiddlewareChain,
+///    },
+///}
+///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
+///    ctx
+///}
+///let mut middleware_chain = MiddlewareChain::new();
+///middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
+///```
 impl MiddlewareChain {
     pub fn new() -> Self {
         MiddlewareChain {
@@ -26,11 +42,9 @@ impl MiddlewareChain {
         self.middlewares.push(middleware);
     }
 
-    pub async fn execute(&self, ctx: UnifyedContext) -> UnifyedContext {
-        let mut ctx = ctx;
+    pub async fn execute(&self, mut ctx: UnifyedContext) {
         for middleware in &self.middlewares {
             ctx = middleware(ctx).await;
         }
-        ctx
     }
 }

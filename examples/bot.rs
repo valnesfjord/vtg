@@ -65,13 +65,11 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 async fn main() {
     env::set_var("RUST_LOG", "vtg");
     env_logger::init();
-    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
-    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
-    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap();
+
     let config = Config {
-        vk_access_token,
-        vk_group_id: vk_group_id.parse().unwrap(),
-        tg_access_token,
+        vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
+        vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
+        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
         vk_api_version: "5.199".to_owned(),
         ..Default::default()
     };
@@ -80,5 +78,4 @@ async fn main() {
     middleware_chain.add_middleware(|ctx| Box::pin(hears_middleware(ctx)));
 
     start_longpoll_client(middleware_chain, config).await;
-    
 }

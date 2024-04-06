@@ -49,6 +49,7 @@ pub struct VKMessageNew {
 }
 
 #[derive(Deserialize, Clone, Debug, Serialize, Default)]
+/// VK Message struct, contains all the information about the new message
 pub struct VKMessage {
     pub text: String,
     pub from_id: i64,

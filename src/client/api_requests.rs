@@ -4,7 +4,30 @@ use serde_json::Value;
 use crate::structs::context::Platform;
 
 use super::*;
-
+/// Send request to VK or Telegram API
+/// # Arguments
+/// * `platform` - Platform to send request to
+/// * `method` - Method to call
+/// * `params` - Parameters to send
+/// * `config` - Config to use
+///
+/// # Returns
+/// * `Result<Value, String>` - Response from API
+///
+/// # Examples
+/// ```no_run
+/// use vtg::client::api_requests::api_call;
+/// use vtg::structs::context::Platform;
+/// let response = api_call(Platform::VK, "messages.send", vec![("peer_id", "1"), ("message", "Hello, world!")], &config).await;
+/// match response {
+///   Ok(response) => {
+///      println!("Response: {}", response);
+///   }
+///   Err(e) => {
+///      println!("Error: {}", e);
+///   }
+///}
+/// ```
 pub async fn api_call(
     platform: Platform,
     method: &str,
