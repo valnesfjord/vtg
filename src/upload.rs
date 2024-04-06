@@ -16,6 +16,12 @@ use crate::{
     },
 };
 
+/// Download files from URLs
+/// # Arguments
+/// * `attachments` - Vector of attachments to download
+///
+/// # Returns
+/// * `Vec<File>` - Vector of downloaded files
 pub async fn download_files(attachments: Vec<Attachment>) -> Vec<File> {
     let mut files: Vec<File> = Vec::new();
     for attachment in attachments {
@@ -29,6 +35,16 @@ struct VKUploadServers {
     audio: String,
     doc: String,
 }
+
+/// Upload files to VK
+///
+/// # Arguments
+/// * `attachments` - Vector of files to upload
+/// * `config` - Config to use
+/// * `peer_id` - Peer ID to send attachments to
+///
+/// # Returns
+/// * `Result<String, String>` - String of uploaded attachments
 pub async fn upload_vk_attachments(
     attachments: Vec<File>,
     config: &Config,
@@ -156,6 +172,13 @@ pub async fn upload_vk_attachments(
     Ok(message_attachments)
 }
 
+/// Send files to TG
+///
+/// # Arguments
+/// * `attachments` - Vector of files to send
+/// * `config` - Config to use
+/// * `peer_id` - Chat ID to send attachments to
+/// * `message` - Message to send with attachments
 pub async fn send_tg_attachment_files(
     attachments: Vec<File>,
     config: &Config,
@@ -211,12 +234,22 @@ pub async fn send_tg_attachment_files(
     }
 }
 
+/// Attachment struct
+/// # Fields
+/// * `url` - URL of the attachment
+/// * `ftype` - FileType of the attachment
 #[derive(Debug, Clone)]
 pub struct Attachment {
     pub url: String,
     pub ftype: FileType,
 }
 
+/// Send attachments to TG
+/// # Arguments
+/// * `attachments` - Vector of attachments to send
+/// * `config` - Config to use
+/// * `peer_id` - Chat ID to send attachments to
+/// * `message` - Message to send with attachments
 pub async fn send_tg_attachments(
     attachments: Vec<Attachment>,
     config: &Config,

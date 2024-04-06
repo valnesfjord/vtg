@@ -1,4 +1,11 @@
+/// Module for making requests to VK and Telegram
+///  
+/// This module contains function for requests to VK and TG API
 pub mod api_requests;
+
+/// Low level module for making requests to VK and Telegram, like file requests and etc
+///  
+/// This module contains low level functions for file requests and etc
 pub mod requests;
 use log::{debug, info, log_enabled};
 use requests::*;
@@ -16,7 +23,8 @@ use crate::structs::context::{UnifyContext, UnifyedContext};
 use crate::structs::middleware::MiddlewareChain;
 use crate::structs::tg::TGGetUpdates;
 use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
-pub async fn get_vk_updates(
+
+async fn get_vk_updates(
     server: &mut str,
     key: &mut str,
     ts: &mut i64,
@@ -49,7 +57,7 @@ pub async fn get_vk_updates(
     }
     *ts += 1;
 }
-pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
+async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     let vk_group_id = config.vk_group_id.to_string();
     let get_server = request(
         "https://api.vk.com/method/groups.getLongPollServer",
@@ -65,7 +73,7 @@ pub async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     );
     server
 }
-pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
+async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
     let get_updates = request(
         &format!(
             "https://api.telegram.org/{}/getUpdates",
@@ -96,6 +104,43 @@ pub async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, confi
     }
 }
 
+///Starts longpoll client for getting updates from VK and Telegram
+///
+///Accepts middleware chain and config
+///
+///# Examples
+///
+///```
+///use std::env;
+///use vtg::{
+///    server::start_longpoll_client,
+///    structs::{
+///        config::Config,
+///        context::UnifyedContext,
+///        middleware::MiddlewareChain,
+///    },
+///}
+///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
+///    ctx
+///}
+///#[tokio::main]
+///async fn main() {
+///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
+///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
+///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap();
+///    let config = Config {
+///            vk_access_token,
+///            vk_group_id: vk_group_id.parse().unwrap(),
+///            tg_access_token,
+///            vk_api_version: "5.199".to_owned(),
+///            ..Default::default()
+///    };
+///    let mut middleware_chain = MiddlewareChain::new();
+///    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
+///
+///    start_longpoll_client(middleware_chain, config).await;
+///}
+///```
 pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) {
     info!("Start getting updates...");
     let vk_settings = get_vk_settings(&config).await;
@@ -120,7 +165,7 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
                         let elapsed_time = end_time.duration_since(start_time);
                         return debug!("Processing time: {:?}", elapsed_time);
                     }
-                    middleware_clone.execute(update).await;
+                    middleware_clone.execute(update).await
                 }
             }
         });

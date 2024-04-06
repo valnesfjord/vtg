@@ -9,6 +9,11 @@ use rand::Rng;
 use std::io::{self, Write};
 
 use crate::structs::context::Platform;
+
+/// Error enum for HyperRequestError
+/// # Variants
+/// * `RequestError` - Request error
+/// * `ResponseError` - Response error
 #[derive(Debug)]
 pub enum HyperRequestError {
     RequestError(hyper::Error),
@@ -25,6 +30,10 @@ lazy_static! {
         Client::builder().build(https)
     };
 }
+/// Sends a POST request with the specified access token and body.
+/// # Returns
+///
+/// Returns the response body as a string.
 pub async fn request(
     url: &str,
     access_token: &str,
@@ -53,11 +62,14 @@ pub async fn request(
         .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
     String::from_utf8(bytes.to_vec()).map_err(|e| HyperRequestError::ResponseError(e.to_string()))
 }
+/// Sends a GET request to the specified URL, download files from it.
+/// # Returns
+///
+/// Returns a File struct with the file content and type.
 pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
     let req = Request::builder()
         .method(Method::GET)
         .uri(url)
-        .version(Version::HTTP_2)
         .body(Body::empty())
         .unwrap();
     let res = CLIENT
@@ -96,6 +108,11 @@ pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
     })
 }
 
+/// File struct with the file content and type.
+/// # Fields
+/// * `filename` - Name of the file, please use real name like cat.jpg or video.mp4
+/// * `content` - File content
+/// * `ftype` - File type
 #[derive(Clone, Debug)]
 pub struct File {
     pub filename: String,
@@ -103,6 +120,16 @@ pub struct File {
     pub ftype: FileType,
 }
 
+/// File type enum.
+/// # Variants
+/// * `Photo` - Photo file
+/// * `Video` - Video file
+/// * `Audio` - Audio file
+/// * `Document` - Document file
+/// * `Voice` - Voice file
+/// * `VideoNote` - Video note file
+/// * `Animation` - Animation file
+/// * `Other` - Other file
 #[derive(Clone, Debug, PartialEq)]
 pub enum FileType {
     Photo,
@@ -129,6 +156,11 @@ impl ToString for FileType {
         }
     }
 }
+/// Sends a POST request with the specified files data to VK or Telegram servers.
+///
+/// # Returns
+///
+/// Returns the response body as a string.
 pub async fn files_request(
     url: &str,
     files: &[File],

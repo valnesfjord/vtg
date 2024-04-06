@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use serde_json::Value;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
@@ -17,6 +16,19 @@ use super::struct_to_vec::struct_to_vec;
 use super::tg_api::TGSendMessageOptions;
 use super::vk_api::VKMessagesSendOptions;
 
+/// Unified context for working with both VK and Telegram
+/// Context is a struct that contains all the information about the event that happened in the chat
+/// # Fields
+/// * `text` - Text of the message
+/// * `from_id` - ID of the user who sent the message
+/// * `peer_id` - ID of the chat where the message was sent
+/// * `id` - ID of the message
+/// * `type` - Type of the event
+/// * `platform` - Platform where the event was received
+/// * `data` - Data to store
+/// * `event` - Event data
+/// * `attachments` - Attachments of the message
+/// * `config` - Config to use
 #[derive(Debug, Clone)]
 pub struct UnifyedContext {
     pub text: String,
@@ -31,6 +43,11 @@ pub struct UnifyedContext {
     pub config: Arc<Config>,
 }
 
+/// Platform enum
+///
+/// # Variants
+/// * `VK` - VK platform
+/// * `Telegram` - Telegram platform
 #[derive(Debug, Clone, PartialEq, Default)]
 pub enum Platform {
     #[default]
@@ -38,6 +55,15 @@ pub enum Platform {
     Telegram,
 }
 
+/// Event type enum
+///
+/// # Variants
+/// * `MessageNew` - New message event
+/// * `MessageEdit` - Message edit event
+/// * `InlineQuery` - Inline query event
+/// * `ChosenInlineResult` - Chosen inline result event
+/// * `CallbackQuery` - Callback query event
+/// * `Unknown` - Unknown event
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
     MessageNew,
@@ -48,20 +74,34 @@ pub enum EventType {
     Unknown,
 }
 
+/// Unify context trait
+/// # Methods
+/// * `unify` - Unify context
 pub trait UnifyContext {
     fn unify(&self, config: &Config) -> UnifyedContext;
 }
-#[derive(Deserialize, Clone, Copy)]
-pub struct VKNewMessageResponse {
-    pub response: i64,
-}
-
+/// Options to send message
+/// # Fields
+/// * `vk` - VK options
+/// * `tg` - Telegram options
 #[derive(Clone, Debug)]
 pub struct SendOptions {
     pub vk: VKMessagesSendOptions,
     pub tg: TGSendMessageOptions,
 }
 
+/// Message builder to send message
+/// # Fields
+/// * `message` - Message text
+/// * `chat_id` - Chat ID
+/// * `config` - Config to use
+/// * `platform` - Platform to send message to
+/// * `vk_options` - VK options
+/// * `tg_options` - Telegram options
+/// * `keyboard` - Keyboard to send
+/// * `attachments` - Attachments to send
+/// * `files` - Files to send
+/// * `parse_mode` - Parse mode to use (Telegram)
 #[derive(Clone, Debug, Default)]
 pub struct MessageBuilder {
     pub message: String,
@@ -75,44 +115,90 @@ pub struct MessageBuilder {
     pub files: Option<Vec<File>>,
     pub parse_mode: Option<String>,
 }
+
 impl MessageBuilder {
-    pub fn vk_options(&self, options: VKMessagesSendOptions) -> MessageBuilder {
+    /// Set vk options for message
+    /// # Arguments
+    /// * `options` - VK options    
+    pub fn vk_options(self, options: VKMessagesSendOptions) -> MessageBuilder {
         MessageBuilder {
             vk_options: Some(options),
-            ..self.clone()
+            ..self
         }
     }
-    pub fn tg_options(&self, options: TGSendMessageOptions) -> MessageBuilder {
+    /// Set telegram options for message
+    /// # Arguments
+    /// * `options` - Telegram options
+    pub fn tg_options(self, options: TGSendMessageOptions) -> MessageBuilder {
         MessageBuilder {
             tg_options: Some(options),
-            ..self.clone()
+            ..self
         }
     }
-    pub fn keyboard(&self, keyboard: Keyboard) -> MessageBuilder {
+    /// Set keyboard for message
+    /// # Arguments
+    /// * `keyboard` - Keyboard to send
+    /// # Keyboard button variants
+    /// You can see keyboard button variants [here](https://docs.rs/vtg/latest/vtg/structs/keyboard/enum.KeyboardButton.html)
+    pub fn keyboard(self, keyboard: Keyboard) -> MessageBuilder {
         MessageBuilder {
             keyboard: Some(keyboard),
-            ..self.clone()
+            ..self
         }
     }
-    pub fn attachments(&self, attachments: Vec<Attachment>) -> MessageBuilder {
+    /// Set attachments for message
+    /// # Arguments
+    /// * `attachments` - Attachments to send
+    pub fn attachments(self, attachments: Vec<Attachment>) -> MessageBuilder {
         MessageBuilder {
             attachments: Some(attachments),
-            ..self.clone()
+            ..self
         }
     }
-    pub fn files(&self, files: Vec<File>) -> MessageBuilder {
+    /// Set files for message
+    /// # Arguments
+    /// * `files` - Files to send
+    pub fn files(self, files: Vec<File>) -> MessageBuilder {
         MessageBuilder {
             files: Some(files),
-            ..self.clone()
+            ..self
         }
     }
-    pub fn parse_mode(&self, parse_mode: &str) -> MessageBuilder {
+    /// Set parse mode for message (for Telegram)
+    /// # Arguments
+    /// * `parse_mode` - Parse mode to use
+    pub fn parse_mode(self, parse_mode: &str) -> MessageBuilder {
         MessageBuilder {
             parse_mode: Some(parse_mode.to_owned()),
-            ..self.clone()
+            ..self
         }
     }
-    pub async fn send(&self) {
+    /// Send message
+    /// # Examples
+    /// ```
+    /// ctx.message("Привет")
+    ///    .keyboard(vtg::structs::keyboard::Keyboard::new(
+    ///        vec![vec![KeyboardButton::Text {
+    ///            color: Color::Positive,
+    ///            label: "Привет".to_string(),
+    ///            data: Some(to_value("{\"text\": \"hello\"}".to_string()).unwrap()),
+    ///        }]],
+    ///        true,
+    ///        false,
+    ///        &ctx.platform,
+    ///    ))
+    ///    .vk_options(vk_api::VKMessagesSendOptions {
+    ///        disable_mentions: Some(true),
+    ///        ..Default::default()
+    ///    })
+    ///    .tg_options(tg_api::TGSendMessageOptions {
+    ///        disable_notification: Some(true),
+    ///        ..Default::default()
+    ///    })
+    ///    .send()
+    ///    .await;
+    ///```
+    pub async fn send(self) {
         let peer_id = self.chat_id;
         let config = self.config.clone();
         let message_str = self.message.to_owned();
@@ -217,6 +303,35 @@ impl MessageBuilder {
 }
 
 impl UnifyedContext {
+    /// Create a message builder to send message, may be slower than ctx.send (work in progress)
+    ///
+    /// # Arguments
+    /// * `message` - Message text
+    ///
+    /// # Examples
+    ///```
+    ///ctx.message("пива бы.")
+    ///   .keyboard(vtg::structs::keyboard::Keyboard::new(
+    ///       vec![vec![KeyboardButton::Text {
+    ///           color: Color::Positive,
+    ///           label: "Посмотреть".to_string(),
+    ///           data: Some(to_value("{\"text\": \"hello\"}".to_string()).unwrap()),
+    ///       }]],
+    ///       true,
+    ///       false,
+    ///       &ctx.platform,
+    ///   ))
+    ///   .vk_options(vk_api::VKMessagesSendOptions {
+    ///       disable_mentions: Some(true),
+    ///       ..Default::default()
+    ///   })
+    ///   .tg_options(tg_api::TGSendMessageOptions {
+    ///       disable_notification: Some(true),
+    ///       ..Default::default()
+    ///   })
+    ///   .send()
+    ///   .await;
+    ///```
     pub fn message(&self, message: &str) -> MessageBuilder {
         MessageBuilder {
             message: message.to_owned(),
@@ -225,6 +340,13 @@ impl UnifyedContext {
             ..Default::default()
         }
     }
+    /// Send a message
+    /// # Arguments
+    /// * `message` - Message text
+    /// # Examples
+    /// ```
+    /// ctx.send("Hello, world!");
+    /// ```
     pub fn send(&self, message: &str) {
         let peer_id = self.peer_id.to_string();
         let config = self.config.clone();
@@ -263,6 +385,13 @@ impl UnifyedContext {
             }
         }
     }
+    /// Send a message with HTML (for Telegram)
+    /// # Arguments
+    /// * `message` - Message text
+    /// # Examples
+    /// ```
+    /// ctx.send_with_html("<b>Hello, world!</b>");
+    /// ```
     pub fn send_with_html(&self, message: &str) {
         let peer_id = self.peer_id.to_string();
         let config = self.config.clone();
@@ -302,6 +431,24 @@ impl UnifyedContext {
             }
         }
     }
+
+    /// Send a message with keyboard
+    /// # Arguments
+    /// * `message` - Message text
+    /// * `keyboard` - Keyboard to send
+    ///
+    /// # Keyboard button variants
+    /// You can see keyboard button variants [here](https://docs.rs/vtg/latest/vtg/structs/keyboard/enum.KeyboardButton.html)
+    ///  
+    /// # Examples
+    /// ```
+    /// use vtg::structs::keyboard::{Keyboard, KeyboardButton, Color};
+    /// ctx.send_with_keyboard("Hello, world!", Keyboard::new(vec![vec![KeyboardButton::Text {
+    ///   color: Color::Positive,
+    ///   label: "Посмотреть".to_string(),
+    ///   data: Some(to_value("{\"text\": \"hello\"}".to_string()).unwrap()),
+    /// }]], true, false, &ctx.platform));
+    /// ```
     pub fn send_with_keyboard(&self, message: &str, keyboard: Keyboard) {
         let peer_id = self.peer_id.to_string();
         let config = self.config.clone();
@@ -356,6 +503,33 @@ impl UnifyedContext {
             }
         }
     }
+    /// Send a message with options
+    ///
+    /// # Arguments
+    /// * `message` - Message text
+    /// * `options` - Options to send
+    ///
+    /// # Examples
+    /// ```
+    /// use vtg::structs::context::SendOptions;
+    /// use vtg::vk_api::VKMessagesSendOptions;
+    /// use vtg::tg_api::TGSendMessageOptions;
+    /// ctx.send_with_options(
+    ///    "@valnesfjord @cyournamec",
+    ///    SendOptions {
+    ///        vk: VKMessagesSendOptions {
+    ///            disable_mentions: Some(true),
+    ///            peer_id: Some(ctx.peer_id),
+    ///            ..Default::default()
+    ///        },
+    ///        tg: TGSendMessageOptions {
+    ///            disable_notification: Some(true),
+    ///            chat_id: Some(ctx.peer_id),
+    ///            ..Default::default()
+    ///        },
+    ///    },
+    ///);
+    ///```
     pub fn send_with_options(&self, message: &'static str, options: SendOptions) {
         let config = self.config.clone();
         match self.platform {
@@ -384,6 +558,25 @@ impl UnifyedContext {
             }
         }
     }
+    /// Send a message with attachments
+    /// # Arguments
+    /// * `message` - Message text
+    /// * `attachments` - Files to send
+    /// # Examples
+    /// ```
+    ///use vtg::client::requests::{File, FileType};
+    ///ctx.send_attachment_files(
+    ///    "пива бы",
+    ///    vec![File {
+    ///        filename: "pivo.jpg".to_string(),
+    ///        content: tokio::fs::read("C:\\Projects\\RustProjects\\vtg\\examples\\pivo2.jpg")
+    ///            .await
+    ///            .unwrap(),
+    ///        ftype: FileType::Photo,
+    ///    }],
+    ///).await;
+    /// ```
+    ///
     pub async fn send_attachment_files(&self, message: &str, attachments: Vec<File>) {
         let peer_id = self.peer_id;
         let config = self.config.clone();
@@ -419,6 +612,31 @@ impl UnifyedContext {
             }
         }
     }
+    /// Send a message with attachments
+    /// # Arguments
+    /// * `message` - Message text
+    /// * `attachments` - Attachments to send
+    /// # Examples
+    /// ```
+    ///use vtg::upload::Attachment;
+    ///ctx.send_attachments(
+    ///        "attachments test",
+    ///        vec![Attachment {
+    ///            url:
+    ///                "https://sn-gazeta.ru/wp-content/uploads/2023/04/tapeta-piwo-w-kuflu-i-szklance.jpg"
+    ///                    .to_string(),
+    ///            ftype: FileType::Photo,
+    ///        },
+    ///        Attachment {
+    ///            url:
+    ///                "https://w.forfun.com/fetch/a9/a908815bda3f615bfe16bef28c6389db.jpeg"
+    ///                    .to_string(),
+    ///            ftype: FileType::Photo,
+    ///        },
+    ///        ],
+    ///    )
+    ///    .await;
+    /// ```
     pub async fn send_attachments(&self, message: &str, attachments: Vec<Attachment>) {
         let peer_id = self.peer_id;
         let config = self.config.clone();
@@ -454,6 +672,12 @@ impl UnifyedContext {
             }
         }
     }
+    /// Call any VK or Telegram API method
+    ///
+    /// # Arguments
+    /// * `platform` - Platform to send request to
+    /// * `method` - Request method
+    /// * `params` - Request params
     pub async fn api_call(
         &self,
         platform: Platform,
@@ -464,18 +688,66 @@ impl UnifyedContext {
             .await
             .unwrap()
     }
+    /// Set data to context
+    /// # Arguments
+    /// * `data` - Data to set
+    /// # Examples
+    /// ```
+    /// ctx.set_data("Hello, world!");
+    /// ```
     pub fn set_data<T: Any + Send + Sync>(&self, data: T) {
         let mut data_to_edit = self.data.lock().unwrap();
         *data_to_edit = Box::new(data);
     }
+    /// Get data from context
+    /// # Examples
+    /// ```
+    /// let data = ctx.get_data::<String>().unwrap();
+    /// ```
     pub fn get_data<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
         let data = self.data.lock().unwrap();
         data.downcast_ref::<T>().cloned()
     }
+    /// Get event from context
+    ///
+    /// # Examples
+    /// ```
+    /// use vtg::structs::vk::VKMessageNew;
+    /// use vtg::structs::tg::TGMessage;
+    /// if ctx.r#type == EventType::MessageNew {
+    ///    match ctx.platform {
+    ///       Platform::Telegram => {
+    ///            let event = ctx.get_event::<TGMessage>().unwrap();
+    ///            println!("{:?}", event);
+    ///        }
+    ///        Platform::VK => {
+    ///            let event = ctx.get_event::<VKMessageNew>().unwrap();
+    ///            println!("{:?}", event);
+    ///        }
+    ///    }
+    ///}
+    /// ```
     pub fn get_event<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
         let event = self.event.lock().unwrap();
         event.downcast_ref::<T>().cloned()
     }
+    /// Get attachments from context
+    ///
+    /// # Examples
+    /// ```
+    /// use vtg::structs::vk_attachments::VKAttachment;
+    /// use vtg::structs::tg_attachments::TGAttachment;
+    ///   match ctx.platform {
+    ///      Platform::Telegram => {
+    ///           let attachment = ctx.get_attachments::<TGAttachment>().unwrap();
+    ///           println!("{:?}", event);
+    ///       }
+    ///       Platform::VK => {
+    ///           let attachment = ctx.get_attachments::<VKAttachment>().unwrap();
+    ///           println!("{:?}", event);
+    ///       }
+    ///   }
+    /// ```
     pub fn get_attachments<T: Any + Send + Sync + Clone>(&self) -> Option<Vec<T>> {
         let attachments = self.attachments.lock().unwrap();
         let result: Option<Vec<T>> = attachments

@@ -7,6 +7,13 @@ use crate::structs::{
 };
 
 impl Keyboard {
+    /// Creates a new Keyboard
+    ///
+    /// # Arguments
+    /// * `buttons` - A vector of vectors of KeyboardButtons
+    /// * `inline` - Whether the keyboard is inline
+    /// * `one_time` - Whether the keyboard is one-time
+    /// * `platform` - Platform to create keyboard for
     pub fn new(
         buttons: Vec<Vec<KeyboardButton>>,
         inline: bool,
