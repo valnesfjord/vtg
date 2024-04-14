@@ -1,3 +1,4 @@
+use regex_automata::util::captures::Captures;
 use vtg::structs::{
     context::{EventType, Platform, UnifyedContext},
     tg::TGMessage,
@@ -5,20 +6,24 @@ use vtg::structs::{
 };
 
 use crate::commands::get_potential_matches;
-use regex_automata::util::captures::Captures;
+
 pub async fn test_matches(ctx: UnifyedContext, caps: Captures) {
     println!("{:?}", get_potential_matches(ctx.clone().text, caps));
+
     ctx.send("test matches (check console)");
 }
 
 pub async fn test_data(ctx: UnifyedContext) {
     let data = ctx.get_data::<i32>().unwrap();
+
     println!("Data: {:?}", data);
+
     ctx.send("test data (check console)");
 }
 
 pub async fn test_ctx(ctx: UnifyedContext) {
     println!("{:?}", ctx);
+
     ctx.send("test ctx (check console)");
 }
 
@@ -39,5 +44,6 @@ pub async fn test_event(ctx: UnifyedContext) {
             }
         }
     }
+    
     ctx.send("test event (check console)");
 }

@@ -9,13 +9,16 @@ use vtg::{
 };
 
 pub async fn test_attachments(ctx: UnifyedContext) {
+    ctx.send("test attachments (check console)");
+
     if ctx.platform == Platform::VK {
         let attachments = ctx.get_attachments::<VKAttachment>().unwrap_or_default();
-        println!("{:?}", attachments)
+        println!("{:?}", attachments);
+        return;
     }
+
     let attachments = ctx.get_attachments::<TGAttachment>().unwrap_or_default();
     println!("{:?}", attachments);
-    ctx.send("test attachments (check console)");
 }
 
 pub async fn send_files(ctx: UnifyedContext) {
