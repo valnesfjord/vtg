@@ -25,7 +25,6 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 log = "0.4"
 [dev-dependencies]
-async-trait = "0.1.73"
 httpmock = "0.6"
 regex = "1.9.3"
 regex-automata = "0.3.6"
