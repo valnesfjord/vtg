@@ -7,11 +7,18 @@ mod api;
 mod attachments;
 mod keyboard;
 mod send;
+
 type CommandFunction = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 pub struct Command {
     pub regex: Regex,
     pub function: fn(UnifyedContext, Captures) -> CommandFunction,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KeyboardData {
+    pub text: String,
+}
+
 pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
     caps.iter()
         .map(|a| {
@@ -20,10 +27,6 @@ pub fn get_potential_matches(text: String, caps: Captures) -> Vec<String> {
                 .to_string()
         })
         .collect()
-}
-#[derive(Serialize, Deserialize, Debug)]
-pub struct KeyboardData {
-    pub text: String,
 }
 
 pub fn command_vec() -> Vec<Command> {

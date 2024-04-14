@@ -11,8 +11,10 @@ use vtg::{
     client::start_longpoll_client,
     structs::{context::Platform, tg::TGCallbackQuery, vk::VKMessageNew},
 };
+
 extern crate vtg;
 mod commands;
+
 lazy_static! {
     static ref COMMAND_VEC: Vec<commands::Command> = commands::command_vec();
 }
@@ -21,7 +23,9 @@ async fn catch_new_message(mut ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew {
         return ctx;
     }
+
     ctx.set_data(54);
+
     if ctx.platform == Platform::VK {
         let event = ctx.get_event::<VKMessageNew>().unwrap();
         if event.message.payload.is_some() {
@@ -34,6 +38,7 @@ async fn catch_new_message(mut ctx: UnifyedContext) -> UnifyedContext {
             }
         }
     }
+
     ctx
 }
 
@@ -41,21 +46,24 @@ async fn catch_tg_callback(mut ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::CallbackQuery {
         return ctx;
     }
+
     let event = ctx.get_event::<TGCallbackQuery>().unwrap();
     if event.data.is_some() {
-        let j: KeyboardData = serde_json::from_str(&event.data.unwrap()).unwrap_or(KeyboardData {
+        let k: KeyboardData = serde_json::from_str(&event.data.unwrap()).unwrap_or(KeyboardData {
             text: "".to_string(),
         });
-        if !j.text.is_empty() {
-            ctx.text = j.text;
+        if !k.text.is_empty() {
+            ctx.text = k.text;
         }
     }
+
     ctx.api_call(
         Platform::Telegram,
         "answerCallbackQuery",
         vec![("callback_query_id", event.id.as_str())],
     )
     .await;
+
     ctx
 }
 
@@ -63,6 +71,7 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
     if ctx.r#type != EventType::MessageNew && ctx.r#type != EventType::CallbackQuery {
         return ctx;
     }
+
     let input = Input::new(ctx.text.as_str());
     for command in COMMAND_VEC.iter() {
         if command.regex.is_match(input.clone()) {
@@ -75,6 +84,7 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 
     ctx
 }
+
 #[tokio::main]
 async fn main() {
     env::set_var("RUST_LOG", "vtg");
@@ -87,6 +97,7 @@ async fn main() {
         vk_api_version: "5.199".to_owned(),
         ..Default::default()
     };
+
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
     middleware_chain.add_middleware(|ctx| Box::pin(catch_tg_callback(ctx)));

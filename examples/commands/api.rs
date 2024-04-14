@@ -70,6 +70,7 @@ pub async fn send_with_api_request(ctx: UnifyedContext) {
         .unwrap();
         return;
     }
+    
     tg_api::Api::send_message(
         TGSendMessageOptions {
             chat_id: Some(ctx.peer_id),

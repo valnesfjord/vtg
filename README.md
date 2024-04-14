@@ -1,7 +1,7 @@
 # VTG - dual-platform bots library
 
 <p align="center">
-  <img src="https://github.com/valnesfjord/vtg/blob/master/vtg.jpeg" width="200">
+  <img src="https://github.com/valnesfjord/vtg/raw/HEAD/vtg.jpeg" width="200">
 </p>
 VTG is a fully functional library for creating bots for both VK and Telegram. Presents unified context and methods, for comfortable work with dual-platform bots.
 
@@ -27,9 +27,11 @@ use vtg::{
     client::start_longpoll_client,
     structs::{config::Config, context::UnifyedContext, middleware::MiddlewareChain},
 };
+
 async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     ctx
 }
+
 #[tokio::main]
 async fn main() {
     let config = Config {
@@ -39,6 +41,7 @@ async fn main() {
         vk_api_version: "5.199".to_owned(),
         ..Default::default()
     };
+
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 
@@ -60,9 +63,11 @@ use vtg::{
         middleware::MiddlewareChain,
     },
 };
+
 async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
     ctx
 }
+
 #[tokio::main]
 async fn main() {
     let config = Config {
@@ -77,6 +82,7 @@ async fn main() {
             path: "yourcallbacksecretpathwithoutslashinstartandend".to_string(),
         }),
     };
+
     let mut middleware_chain = MiddlewareChain::new();
     middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 
