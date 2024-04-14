@@ -23,6 +23,7 @@ Example using longpoll client:
 
 ```rust
 use std::env;
+
 use vtg::{
     client::start_longpoll_client,
     structs::{config::Config, context::UnifyedContext, middleware::MiddlewareChain},
