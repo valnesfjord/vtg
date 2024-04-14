@@ -337,6 +337,7 @@ impl UnifyedContext {
             message: message.to_owned(),
             chat_id: self.peer_id,
             config: self.config.clone(),
+            platform: self.platform.clone(),
             ..Default::default()
         }
     }
