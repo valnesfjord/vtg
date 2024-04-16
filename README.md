@@ -74,6 +74,7 @@ async fn main() {
         vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
         vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
         tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(), // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
+        vk_api_version: "5.199".to_owned(),
         callback: Some(CallbackSettings {
             port: 1234,
             callback_url: "https://valnesfjord.com".to_string(),
