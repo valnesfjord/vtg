@@ -118,6 +118,7 @@ async fn handle_request(
 ///        vk_access_token,
 ///        vk_group_id: vk_group_id.parse().unwrap(),
 ///        tg_access_token,
+///        vk_api_version: "5.199".to_owned(),
 ///        callback: Some(CallbackSettings {
 ///            port: 1234,
 ///            callback_url: "https://valnesfjord.com".to_string(),
