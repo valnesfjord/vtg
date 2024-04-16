@@ -1,6 +1,6 @@
 [package]
 name = "vtg"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 authors = ["Vyacheslav Shteyn <ms.vana32@gmail.com>"]
 license = "MIT"
@@ -25,7 +25,5 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 log = "0.4"
 [dev-dependencies]
-httpmock = "0.6"
-regex = "1.9.3"
 regex-automata = "0.3.6"
 env_logger = "0.9"
