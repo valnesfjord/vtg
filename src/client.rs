@@ -112,6 +112,7 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
 ///
 ///```
 ///use std::env;
+///
 ///use vtg::{
 ///    client::start_longpoll_client,
 ///    structs::{
@@ -120,21 +121,24 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
 ///        middleware::MiddlewareChain,
 ///    },
 ///};
+///
 ///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 ///    ctx
 ///}
+/// 
 ///#[tokio::main]
 ///async fn main() {
 ///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
 ///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
 ///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap(); // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
+/// 
 ///    let config = Config {
 ///            vk_access_token,
 ///            vk_group_id: vk_group_id.parse().unwrap(),
 ///            tg_access_token,
-///            vk_api_version: "5.199".to_owned(),
 ///            ..Default::default()
 ///    };
+/// 
 ///    let mut middleware_chain = MiddlewareChain::new();
 ///    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 ///
@@ -143,6 +147,7 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
 ///```
 pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) {
     info!("Start getting updates...");
+    let config = config.check();
     let vk_settings = get_vk_settings(&config).await;
     let mut server = vk_settings.response.server;
     let mut key = vk_settings.response.key;
