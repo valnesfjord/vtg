@@ -103,6 +103,7 @@ async fn handle_request(
 ///        middleware::MiddlewareChain,
 ///    },
 ///};
+///
 ///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 ///    ctx
 ///}
@@ -112,11 +113,11 @@ async fn handle_request(
 ///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
 ///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
 ///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap(); // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
+/// 
 ///    let config = Config {
 ///        vk_access_token,
 ///        vk_group_id: vk_group_id.parse().unwrap(),
 ///        tg_access_token,
-///        vk_api_version: "5.199".to_owned(),
 ///        callback: Some(CallbackSettings {
 ///            port: 1234,
 ///            callback_url: "https://valnesfjord.com".to_string(),
@@ -124,6 +125,7 @@ async fn handle_request(
 ///            path: "yourcallbacksecretpathwithoutslashinstartandend".to_string(),
 ///        }),
 ///    };
+/// 
 ///    let mut middleware_chain = MiddlewareChain::new();
 ///    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 ///
@@ -131,6 +133,7 @@ async fn handle_request(
 ///}
 ///```
 pub async fn start_callback_server(middleware: MiddlewareChain, config: Config) {
+    let config = config.check();
     if config.callback.is_none() {
         panic!("Callback settings don't exist in config");
     }

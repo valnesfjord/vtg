@@ -94,7 +94,6 @@ async fn main() {
         vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
         vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
         tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
-        vk_api_version: "5.199".to_owned(),
         ..Default::default()
     };
 

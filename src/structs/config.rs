@@ -62,3 +62,39 @@ pub struct Config {
     pub tg_access_token: String,
     pub callback: Option<CallbackSettings>,
 }
+
+impl Config {
+    pub fn check(mut self) -> Self {
+        if self.tg_access_token.is_empty() || self.vk_access_token.is_empty() {
+            panic!("Telegram or VK access token is empty");
+        }
+        if !self.tg_access_token.starts_with("bot") {
+            panic!("Telegram access token must starts with 'bot'");
+        }
+        if self.vk_group_id == 0 || self.vk_group_id.is_negative() {
+            panic!("VK group ID is empty or invalid");
+        }
+        if self.vk_api_version.is_empty() {
+            self.vk_api_version = "5.199".to_string();
+        }
+        if self.callback.is_some() {
+            let callback = self.callback.as_ref().unwrap();
+            if callback.port == 0 {
+                panic!("Callback port is empty or invalid");
+            }
+            if callback.callback_url.is_empty() {
+                panic!("Callback URL is empty");
+            }
+            if callback.secret.is_empty() {
+                panic!("Callback secret is empty");
+            }
+            if callback.path.is_empty() {
+                panic!("Callback path is empty");
+            }
+            if callback.path.starts_with('/') || callback.path.ends_with('/') {
+                panic!("Callback path must not start or end with slash");
+            }
+        }
+        self
+    }
+}
