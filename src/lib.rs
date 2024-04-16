@@ -18,6 +18,7 @@
 //! Example using longpoll client:
 //!```
 //!use std::env;
+//! 
 //!use vtg::{
 //!    client::start_longpoll_client,
 //!    structs::{
@@ -26,18 +27,20 @@
 //!        middleware::MiddlewareChain,
 //!    },
 //!};
+//!
 //!async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 //!    ctx
 //!}
+//!
 //!#[tokio::main]
 //!async fn main() {
 //!let config = Config {
 //!        vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
 //!        vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
 //!        tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(), // token stats with bot, like: bot1234567890:ABCDEFGHIJKL
-//!        vk_api_version: "5.199".to_owned(),
 //!        ..Default::default()
 //!    };
+//! 
 //!    let mut middleware_chain = MiddlewareChain::new();
 //!    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 //!
@@ -57,9 +60,11 @@
 //!        middleware::MiddlewareChain,
 //!    },
 //!};
+//! 
 //!async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 //!    ctx
 //!}
+//! 
 //!#[tokio::main]
 //!async fn main() {
 //!    let config = Config {
@@ -74,6 +79,7 @@
 //!            path: "yourcallbacksecretpathwithoutslashinstartandend".to_string(),
 //!        }),
 //!    };
+//! 
 //!    let mut middleware_chain = MiddlewareChain::new();
 //!    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 //!
