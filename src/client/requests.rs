@@ -3,7 +3,7 @@ use bytes::Bytes;
 use http_body_util::{BodyExt, Empty, Full};
 use hyper::{
     header::{CONTENT_LENGTH, CONTENT_TYPE},
-    Method, Request, Version,
+    Method, Request,
 };
 use hyper_tls::HttpsConnector;
 use hyper_util::{
@@ -26,14 +26,10 @@ pub enum HyperRequestError {
     ResponseError(String),
 }
 lazy_static! {
-    static ref CLIENT: Client<HttpsConnector<HttpConnector>, Full<Bytes>> = {
-        let https = HttpsConnector::new();
-        Client::builder(TokioExecutor::new()).build::<_, Full<Bytes>>(https)
-    };
-    static ref EMPTY_CLIENT: Client<HttpsConnector<HttpConnector>, Empty<Bytes>> = {
-        let https = HttpsConnector::new();
-        Client::builder(TokioExecutor::new()).build::<_, Empty<Bytes>>(https)
-    };
+    static ref CLIENT: Client<HttpsConnector<HttpConnector>, Full<Bytes>> =
+        Client::builder(TokioExecutor::new()).build::<_, Full<Bytes>>(HttpsConnector::new());
+    static ref EMPTY_CLIENT: Client<HttpsConnector<HttpConnector>, Empty<Bytes>> =
+        Client::builder(TokioExecutor::new()).build::<_, Empty<Bytes>>(HttpsConnector::new());
 }
 /// Sends a POST request with the specified access token and body.
 /// # Returns
@@ -54,7 +50,6 @@ pub async fn request(
         .header("Authorization", format!("Bearer {}", access_token))
         .header(CONTENT_LENGTH, form_body.len())
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
-        .version(Version::HTTP_2)
         .body(Full::from(form_body))
         .unwrap();
     let res = CLIENT
@@ -214,7 +209,6 @@ pub async fn files_request(
             CONTENT_TYPE,
             format!("multipart/form-data; boundary={}", boundary),
         )
-        .version(Version::HTTP_2)
         .body(body.into())
         .unwrap();
     let res = CLIENT.request(req).await?;
