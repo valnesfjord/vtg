@@ -4,12 +4,20 @@ use crate::structs::context::{Platform, UnifyContext, UnifyedContext};
 use crate::structs::middleware::MiddlewareChain;
 use crate::structs::tg::TGUpdate;
 use crate::structs::vk::VKUpdate;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server};
+use bytes::Bytes;
+use http_body_util::{BodyExt, Full};
+use hyper::body::Incoming;
+use hyper::service::Service;
+use hyper::{Request, Response};
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server;
 use log::{debug, error, info, log_enabled};
+use std::future::Future;
 use std::panic;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::{convert::Infallible, net::SocketAddr};
+use tokio::net::TcpListener;
 use tokio::signal;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
@@ -30,22 +38,22 @@ impl Drop for Cleanup {
     }
 }
 async fn handle_request(
-    req: Request<Body>,
+    req: Request<Incoming>,
     config: Arc<Config>,
     tx: Arc<Sender<UnifyedContext>>,
-) -> Result<Response<Body>, Infallible> {
+) -> Result<Response<Full<Bytes>>, Infallible> {
     let uri = req.uri();
     let settings = config.callback.as_ref().unwrap();
     match uri.path() {
         path if path == format!("/{}/vk", settings.path) => {
-            let bytes = hyper::body::to_bytes(req.into_body()).await.unwrap();
+            let bytes = req.collect().await.unwrap().to_bytes();
             let update: VKUpdate =
                 serde_json::from_str(String::from_utf8(bytes.to_vec()).unwrap().as_str()).unwrap();
             if update.r#type == "confirmation" {
                 return Ok(Response::builder()
                     .status(200)
                     .header("Content-Type", "text/plain")
-                    .body(Body::from(config.callback.clone().unwrap().secret.clone()))
+                    .body(Full::from(config.callback.clone().unwrap().secret.clone()))
                     .unwrap());
             }
             debug!("[CALLBACK] [VK] Got update, processing");
@@ -62,10 +70,10 @@ async fn handle_request(
                 return Ok(Response::builder()
                     .status(403)
                     .header("Content-Type", "text/plain")
-                    .body(Body::from("Forbidden"))
+                    .body(Full::from("Forbidden"))
                     .unwrap());
             }
-            let bytes = hyper::body::to_bytes(req.into_body()).await.unwrap();
+            let bytes = req.collect().await.unwrap().to_bytes();
             let update: TGUpdate = serde_json::from_str(
                 &String::from_utf8(bytes.to_vec()).unwrap(),
             )
@@ -81,7 +89,7 @@ async fn handle_request(
 
     Ok(Response::builder()
         .status(200)
-        .body(Body::from("OK"))
+        .body(Full::from("OK"))
         .unwrap())
 }
 ///Starts callback server for getting updates from VK and Telegram
@@ -113,7 +121,7 @@ async fn handle_request(
 ///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
 ///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
 ///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap(); // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
-/// 
+///
 ///    let config = Config {
 ///        vk_access_token,
 ///        vk_group_id: vk_group_id.parse().unwrap(),
@@ -126,7 +134,7 @@ async fn handle_request(
 ///            path: "yourcallbacksecretpathwithoutslashinstartandend".to_string(),
 ///        }),
 ///    };
-/// 
+///
 ///    let mut middleware_chain = MiddlewareChain::new();
 ///    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 ///
@@ -201,19 +209,44 @@ pub async fn start_callback_server(middleware: MiddlewareChain, config: Config) 
     });
 
     let tx = Arc::new(tx);
+    let service = Svc {
+        config: Arc::clone(&cfg),
+        tx: Arc::clone(&tx),
+    };
 
-    let make_svc = make_service_fn(move |_| {
-        let tx = Arc::clone(&tx);
-        let cfg = Arc::clone(&cfg);
+    let listener = TcpListener::bind(addr).await.unwrap();
 
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req| {
-                handle_request(req, cfg.clone(), tx.clone())
-            }))
-        }
-    });
+    loop {
+        let (stream, _) = listener.accept().await.unwrap();
+        let io = TokioIo::new(stream);
+        let svc_clone = service.clone();
 
-    if let Err(err) = Server::bind(&addr).serve(make_svc).await {
-        error!("Error serving connection: {:?}", err);
+        tokio::task::spawn(async move {
+            if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+                .http1()
+                .http2()
+                .serve_connection(io, svc_clone)
+                .await
+            {
+                error!("Error serving connection: {:?}", err);
+            }
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Svc {
+    config: Arc<Config>,
+    tx: Arc<Sender<UnifyedContext>>,
+}
+
+impl Service<Request<Incoming>> for Svc {
+    type Response = Response<Full<Bytes>>;
+    type Error = hyper::Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    fn call(&self, req: Request<Incoming>) -> Self::Future {
+        let config = Arc::clone(&self.config);
+        let tx = Arc::clone(&self.tx);
+        Box::pin(async move { Ok(handle_request(req, config, tx).await.unwrap()) })
     }
 }

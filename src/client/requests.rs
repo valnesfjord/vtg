@@ -1,6 +1,14 @@
+use crate::structs::context::Platform;
+use bytes::Bytes;
+use http_body_util::{BodyExt, Empty, Full};
 use hyper::{
     header::{CONTENT_LENGTH, CONTENT_TYPE},
-    Body, Client, Method, Request, Version,
+    Method, Request,
+};
+use hyper_tls::HttpsConnector;
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt::TokioExecutor,
 };
 use lazy_static::lazy_static;
 use log::debug;
@@ -8,27 +16,20 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use std::io::{self, Write};
 
-use crate::structs::context::Platform;
-
 /// Error enum for HyperRequestError
 /// # Variants
 /// * `RequestError` - Request error
 /// * `ResponseError` - Response error
 #[derive(Debug)]
 pub enum HyperRequestError {
-    RequestError(hyper::Error),
+    RequestError(hyper_util::client::legacy::Error),
     ResponseError(String),
 }
 lazy_static! {
-    static ref CLIENT: Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body> = {
-        let https = hyper_rustls::HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_or_http()
-            .enable_http2()
-            .build();
-
-        Client::builder().build(https)
-    };
+    static ref CLIENT: Client<HttpsConnector<HttpConnector>, Full<Bytes>> =
+        Client::builder(TokioExecutor::new()).build::<_, Full<Bytes>>(HttpsConnector::new());
+    static ref EMPTY_CLIENT: Client<HttpsConnector<HttpConnector>, Empty<Bytes>> =
+        Client::builder(TokioExecutor::new()).build::<_, Empty<Bytes>>(HttpsConnector::new());
 }
 /// Sends a POST request with the specified access token and body.
 /// # Returns
@@ -49,18 +50,14 @@ pub async fn request(
         .header("Authorization", format!("Bearer {}", access_token))
         .header(CONTENT_LENGTH, form_body.len())
         .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
-        .version(Version::HTTP_2)
-        .body(Body::from(form_body))
+        .body(Full::from(form_body))
         .unwrap();
     let res = CLIENT
         .request(req)
         .await
         .map_err(HyperRequestError::RequestError)?;
-
-    let bytes = hyper::body::to_bytes(res.into_body())
-        .await
-        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
-    String::from_utf8(bytes.to_vec()).map_err(|e| HyperRequestError::ResponseError(e.to_string()))
+    let body = res.collect().await.unwrap().to_bytes();
+    String::from_utf8(body.to_vec()).map_err(|e| HyperRequestError::ResponseError(e.to_string()))
 }
 /// Sends a GET request to the specified URL, download files from it.
 /// # Returns
@@ -70,9 +67,9 @@ pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
     let req = Request::builder()
         .method(Method::GET)
         .uri(url)
-        .body(Body::empty())
+        .body(Empty::new())
         .unwrap();
-    let res = CLIENT
+    let res = EMPTY_CLIENT
         .request(req)
         .await
         .map_err(HyperRequestError::RequestError)?;
@@ -97,9 +94,7 @@ pub async fn get_file(url: &str) -> Result<File, HyperRequestError> {
         })
         .unwrap_or(FileType::Other);
 
-    let bytes = hyper::body::to_bytes(res.into_body())
-        .await
-        .map_err(|e| HyperRequestError::ResponseError(e.to_string()))?;
+    let bytes = res.collect().await.unwrap().to_bytes();
 
     Ok(File {
         filename,
@@ -214,11 +209,10 @@ pub async fn files_request(
             CONTENT_TYPE,
             format!("multipart/form-data; boundary={}", boundary),
         )
-        .version(Version::HTTP_2)
         .body(body.into())
         .unwrap();
     let res = CLIENT.request(req).await?;
-    let body = hyper::body::to_bytes(res.into_body()).await?;
+    let body = res.collect().await.unwrap().to_bytes();
     let body_str = String::from_utf8(body.to_vec())?;
     debug!("Response body: {}", body_str);
 

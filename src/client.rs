@@ -65,8 +65,9 @@ async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
         vec![("group_id", &vk_group_id), ("v", &config.vk_api_version)],
     )
     .await;
-    let server: VKGetServerResponse =
-        serde_json::from_str(&get_server.unwrap_or("".to_string())).unwrap();
+    let server = get_server.unwrap();
+    println!("{:?}", server);
+    let server: VKGetServerResponse = serde_json::from_str(&server).unwrap();
     debug!(
         "[LONGPOLL] [VK] Got longpoll server: {}",
         server.response.server
@@ -125,20 +126,20 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
 ///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 ///    ctx
 ///}
-/// 
+///
 ///#[tokio::main]
 ///async fn main() {
 ///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
 ///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();
 ///    let tg_access_token = env::var("TG_ACCESS_TOKEN").unwrap(); // token starts with "bot", like: bot1234567890:ABCDEFGHIJKL
-/// 
+///
 ///    let config = Config {
 ///            vk_access_token,
 ///            vk_group_id: vk_group_id.parse().unwrap(),
 ///            tg_access_token,
 ///            ..Default::default()
 ///    };
-/// 
+///
 ///    let mut middleware_chain = MiddlewareChain::new();
 ///    middleware_chain.add_middleware(|ctx| Box::pin(catch_new_message(ctx)));
 ///
