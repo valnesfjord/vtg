@@ -6,12 +6,18 @@ use crate::structs::tg::TGUpdate;
 use crate::structs::vk::VKUpdate;
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
-use hyper::service::service_fn;
+use hyper::body::Incoming;
+use hyper::service::Service;
 use hyper::{Request, Response};
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server;
 use log::{debug, error, info, log_enabled};
+use std::future::Future;
 use std::panic;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::{convert::Infallible, net::SocketAddr};
+use tokio::net::TcpListener;
 use tokio::signal;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
@@ -32,7 +38,7 @@ impl Drop for Cleanup {
     }
 }
 async fn handle_request(
-    req: Request<Full<Bytes>>,
+    req: Request<Incoming>,
     config: Arc<Config>,
     tx: Arc<Sender<UnifyedContext>>,
 ) -> Result<Response<Full<Bytes>>, Infallible> {
@@ -203,19 +209,44 @@ pub async fn start_callback_server(middleware: MiddlewareChain, config: Config) 
     });
 
     let tx = Arc::new(tx);
+    let service = Svc {
+        config: Arc::clone(&cfg),
+        tx: Arc::clone(&tx),
+    };
 
-    let make_svc = make_service_fn(move |_| {
-        let tx = Arc::clone(&tx);
-        let cfg = Arc::clone(&cfg);
+    let listener = TcpListener::bind(addr).await.unwrap();
 
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req| {
-                handle_request(req, cfg.clone(), tx.clone())
-            }))
-        }
-    });
+    loop {
+        let (stream, _) = listener.accept().await.unwrap();
+        let io = TokioIo::new(stream);
+        let svc_clone = service.clone();
 
-    if let Err(err) = Server::bind(&addr).serve(make_svc).await {
-        error!("Error serving connection: {:?}", err);
+        tokio::task::spawn(async move {
+            if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+                .http1()
+                .http2()
+                .serve_connection(io, svc_clone)
+                .await
+            {
+                error!("Error serving connection: {:?}", err);
+            }
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Svc {
+    config: Arc<Config>,
+    tx: Arc<Sender<UnifyedContext>>,
+}
+
+impl Service<Request<Incoming>> for Svc {
+    type Response = Response<Full<Bytes>>;
+    type Error = hyper::Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    fn call(&self, req: Request<Incoming>) -> Self::Future {
+        let config = Arc::clone(&self.config);
+        let tx = Arc::clone(&self.tx);
+        Box::pin(async move { Ok(handle_request(req, config, tx).await.unwrap()) })
     }
 }
