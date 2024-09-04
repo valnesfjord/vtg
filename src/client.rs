@@ -42,6 +42,7 @@ async fn get_vk_updates(
         ],
     )
     .await;
+
     let updates: VKGetUpdates = serde_json::from_str(&get_updates.unwrap_or("".to_string()))
         .unwrap_or(VKGetUpdates {
             ts: ts.to_string(),
@@ -51,12 +52,15 @@ async fn get_vk_updates(
         "[LONGPOLL] [VK] Got {} updates, processing",
         updates.updates.len()
     );
+
     for update in updates.updates {
         let unified = update.unify(config);
         tx.send(unified).await.unwrap();
     }
+
     *ts += 1;
 }
+
 async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     let vk_group_id = config.vk_group_id.to_string();
     let get_server = request(
@@ -64,16 +68,18 @@ async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
         &config.vk_access_token,
         vec![("group_id", &vk_group_id), ("v", &config.vk_api_version)],
     )
-    .await;
-    let server = get_server.unwrap();
-    println!("{:?}", server);
-    let server: VKGetServerResponse = serde_json::from_str(&server).unwrap();
+    .await
+    .unwrap();
+
+    let server: VKGetServerResponse = serde_json::from_str(&get_server).unwrap();
     debug!(
         "[LONGPOLL] [VK] Got longpoll server: {}",
         server.response.server
     );
+
     server
 }
+
 async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
     let get_updates = request(
         &format!(
@@ -98,9 +104,11 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
         "[LONGPOLL] [TELEGRAM] Got {} updates, processing",
         updates.result.len()
     );
+
     for update in updates.result {
         let unified = update.unify(config);
         tx.send(unified).await.unwrap();
+        
         *offset = update.update_id + 1;
     }
 }
@@ -177,10 +185,12 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
             }
         });
     }
+
     let mut interval = interval(Duration::from_secs(600));
     loop {
         let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx, &config);
         let tg_task = get_tg_updates(&mut offset, &tx, &config);
+
         select! {
             _ = vk_task => {
             },
