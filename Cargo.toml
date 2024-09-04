@@ -1,6 +1,6 @@
 [package]
 name = "vtg"
-version = "1.0.5"
+version = "1.0.6"
 edition = "2021"
 authors = ["Vyacheslav Shteyn <ms.vana32@gmail.com>"]
 license = "MIT"

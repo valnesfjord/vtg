@@ -96,7 +96,7 @@ You can find example bot in the [examples folder](https://github.com/valnesfjord
 
 ## Try bot, that works with vtg
 
-You can try test bot, that works in actual version of vtg: [tg](https://t.me/deformation_bot), [vk](https://vk.me/testdeformation)
+You can try test bot, that works in actual version of vtg: [tg](https://t.me/deformation_bot), [vk](https://vk.me/deformation_bot)
 
 ## Documentation
 
