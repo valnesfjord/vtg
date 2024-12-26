@@ -9,6 +9,7 @@ use crate::{
     structs::{
         config::Config,
         context::Platform,
+        struct_to_vec::param,
         upload::{
             VKGetUploadServerResponse, VKMessageDocumentResponse, VKMessageDocumentUploaded,
             VKMessagePhotoResponse, VKMessagePhotoUploaded,
@@ -64,7 +65,7 @@ pub async fn upload_vk_attachments(
                         api_call(
                             Platform::VK,
                             "photos.getMessagesUploadServer",
-                            vec![("peer_id", &peer_id.to_string())],
+                            vec![param("peer_id", peer_id.to_string())],
                             config,
                         )
                         .await?,
@@ -80,7 +81,10 @@ pub async fn upload_vk_attachments(
                         api_call(
                             Platform::VK,
                             "docs.getMessagesUploadServer",
-                            vec![("peer_id", &peer_id.to_string()), ("type", "audio_message")],
+                            vec![
+                                param("peer_id", peer_id.to_string()),
+                                param("type", "audio_message"),
+                            ],
                             config,
                         )
                         .await?,
@@ -96,7 +100,7 @@ pub async fn upload_vk_attachments(
                         api_call(
                             Platform::VK,
                             "docs.getMessagesUploadServer",
-                            vec![("peer_id", &peer_id.to_string()), ("type", "doc")],
+                            vec![param("peer_id", peer_id.to_string()), param("type", "doc")],
                             config,
                         )
                         .await?,
@@ -121,9 +125,9 @@ pub async fn upload_vk_attachments(
                         Platform::VK,
                         "photos.saveMessagesPhoto",
                         vec![
-                            ("photo", &uploaded_photo.photo),
-                            ("server", &uploaded_photo.server.to_string()),
-                            ("hash", &uploaded_photo.hash),
+                            param("photo", uploaded_photo.photo),
+                            param("server", uploaded_photo.server.to_string()),
+                            param("hash", uploaded_photo.hash),
                         ],
                         config,
                     )
@@ -145,7 +149,7 @@ pub async fn upload_vk_attachments(
                 let server_resp = api_call(
                     Platform::VK,
                     "docs.save",
-                    vec![("file", &uploaded_doc.file)],
+                    vec![param("file", uploaded_doc.file)],
                     config,
                 )
                 .await?;
@@ -262,9 +266,9 @@ pub async fn send_tg_attachments(
             Platform::Telegram,
             &format!("send{}", ftype.replace('_', "")),
             vec![
-                ("caption", message),
-                ("chat_id", &peer_id.to_string()),
-                (&ftype.to_lowercase(), &attachments[0].url),
+                param("caption", message),
+                param("chat_id", peer_id.to_string()),
+                param(ftype.to_lowercase(), &attachments[0].url),
             ],
             config,
         )
@@ -285,8 +289,8 @@ pub async fn send_tg_attachments(
             Platform::Telegram,
             "sendMediaGroup",
             vec![
-                ("media", &format!("[{}]", media.join(","))),
-                ("chat_id", &peer_id.to_string()),
+                param("media", format!("[{}]", media.join(","))),
+                param("chat_id", peer_id.to_string()),
             ],
             config,
         )

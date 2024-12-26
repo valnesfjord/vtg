@@ -205,7 +205,7 @@ pub struct VKChatPhoto {
 }
 
 impl UnifyContext for VKUpdate {
-    fn unify(&self, config: &Config) -> UnifyedContext {
+    fn unify(&self, config: Arc<Config>) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
         let (r#type, text, chat_id, message_id, from_id, attachments) = match self.object.clone() {
             Some(VKObject::MessageNew(message)) => {
@@ -223,7 +223,7 @@ impl UnifyContext for VKUpdate {
                 event = Arc::new(Mutex::new(Box::new(message.clone())));
                 (
                     EventType::CallbackQuery,
-                    message.payload.clone(),
+                    message.payload,
                     message.peer_id,
                     message.conversation_message_id,
                     message.user_id,
@@ -234,7 +234,7 @@ impl UnifyContext for VKUpdate {
                 event = Arc::new(Mutex::new(Box::new(())));
                 (
                     EventType::Unknown,
-                    "".to_owned(),
+                    String::new(),
                     0,
                     0,
                     0,
@@ -243,14 +243,14 @@ impl UnifyContext for VKUpdate {
             }
         };
         UnifyedContext {
-            text: text.clone(),
+            text,
             from_id,
             peer_id: chat_id,
             id: message_id,
             r#type,
             platform: Platform::VK,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: Arc::new(config.clone()),
+            config,
             event,
             attachments,
         }

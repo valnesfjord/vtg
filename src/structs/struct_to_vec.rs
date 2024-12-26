@@ -1,18 +1,31 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
-pub fn struct_to_vec<T: Serialize + for<'a> Deserialize<'a>>(
-    s: T,
-) -> Vec<(&'static str, &'static str)> {
-    let map: HashMap<String, Value> =
-        serde_json::from_value(serde_json::to_value(s).unwrap()).unwrap();
-    map.into_iter()
-        .map(|(k, v)| {
-            let k = Box::leak(k.into_boxed_str());
-            let v = Box::leak(v.to_string().into_boxed_str());
-            (k as &str, v as &str)
-        })
-        .collect()
+pub fn struct_to_vec<'a, T>(s: T) -> Vec<(Cow<'a, str>, Cow<'a, str>)>
+where
+    T: Serialize,
+{
+    let value = serde_json::to_value(&s).expect("Error serializing structure to JSON");
+
+    let map: HashMap<String, Value> = match value {
+        Value::Object(map) => map.into_iter().collect(),
+        _ => panic!("Expected JSON object to convert to HashMap"),
+    };
+
+    let string_map: HashMap<Cow<'a, str>, Cow<'a, str>> = map
+        .into_iter()
+        .map(|(k, v)| (Cow::Owned(k), Cow::Owned(v.to_string())))
+        .collect();
+
+    string_map.into_iter().collect()
+}
+
+pub fn param<'a, S1, S2>(s1: S1, s2: S2) -> (Cow<'a, str>, Cow<'a, str>)
+where
+    S1: Into<Cow<'a, str>>,
+    S2: Into<Cow<'a, str>>,
+{
+    (s1.into(), s2.into())
 }

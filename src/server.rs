@@ -2,6 +2,7 @@ use crate::client::api_requests::api_call;
 use crate::structs::config::Config;
 use crate::structs::context::{Platform, UnifyContext, UnifyedContext};
 use crate::structs::middleware::MiddlewareChain;
+use crate::structs::struct_to_vec::param;
 use crate::structs::tg::TGUpdate;
 use crate::structs::vk::VKUpdate;
 use bytes::Bytes;
@@ -57,7 +58,7 @@ async fn handle_request(
                     .unwrap());
             }
             debug!("[CALLBACK] [VK] Got update, processing");
-            tx.send(update.unify(&config)).await.unwrap();
+            tx.send(update.unify(config.clone())).await.unwrap();
             Response::builder().status(200)
         }
         path if path == format!("/{}/telegram", settings.path) => {
@@ -74,14 +75,12 @@ async fn handle_request(
                     .unwrap());
             }
             let bytes = req.collect().await.unwrap().to_bytes();
-            let update: TGUpdate = serde_json::from_str(
-                &String::from_utf8(bytes.to_vec()).unwrap(),
-            )
-            .unwrap_or(TGUpdate {
-                ..Default::default()
-            });
+            let update: TGUpdate = serde_json::from_str(core::str::from_utf8(&bytes).unwrap())
+                .unwrap_or(TGUpdate {
+                    ..Default::default()
+                });
             debug!("[WEBHOOK] [TELEGRAM] Got update, processing");
-            tx.send(update.unify(&config)).await.unwrap();
+            tx.send(update.unify(config.clone())).await.unwrap();
             Response::builder().status(200)
         }
         _ => Response::builder().status(404),
@@ -173,11 +172,11 @@ pub async fn start_callback_server(middleware: MiddlewareChain, config: Config) 
         Platform::Telegram,
         "setWebhook",
         vec![
-            (
+            param(
                 "url",
-                &format!("{}/{}/telegram", settings.callback_url, settings.path),
+                format!("{}/{}/telegram", settings.callback_url, settings.path),
             ),
-            ("secret_token", &settings.secret),
+            param("secret_token", settings.secret.clone()),
         ],
         &config,
     )
@@ -224,7 +223,6 @@ pub async fn start_callback_server(middleware: MiddlewareChain, config: Config) 
         tokio::task::spawn(async move {
             if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
                 .http1()
-                .http2()
                 .serve_connection(io, svc_clone)
                 .await
             {

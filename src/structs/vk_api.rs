@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -20,7 +21,7 @@ use super::{
 };
 pub fn vk_api_call(
     method: &'static str,
-    params: Vec<(&'static str, &'static str)>,
+    params: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     config: Arc<Config>,
 ) -> JoinHandle<Value> {
     tokio::task::spawn(async move {

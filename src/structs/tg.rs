@@ -136,7 +136,7 @@ pub struct TGChat {
 }
 
 impl UnifyContext for TGUpdate {
-    fn unify(&self, config: &Config) -> UnifyedContext {
+    fn unify(&self, config: Arc<Config>) -> UnifyedContext {
         let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
         let (r#type, text, chat_id, message_id, from_id) = match self {
             TGUpdate {
@@ -211,14 +211,14 @@ impl UnifyContext for TGUpdate {
             }
         };
         UnifyedContext {
-            text: text.clone().unwrap_or("".to_owned()),
+            text: text.unwrap_or(String::new()),
             from_id,
             peer_id: chat_id,
             id: message_id,
             r#type,
             platform: Platform::Telegram,
             data: Arc::new(Mutex::new(Box::new(()))),
-            config: Arc::new(config.to_owned()),
+            config,
             event,
             attachments: unify_attachments(self.message.clone()),
         }

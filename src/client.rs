@@ -7,6 +7,8 @@ pub mod api_requests;
 ///  
 /// This module contains low level functions for file requests and etc
 pub mod requests;
+
+pub mod structs;
 use log::{debug, info, log_enabled};
 use requests::*;
 use std::time::Duration;
@@ -21,6 +23,7 @@ use tokio::{
 use crate::structs::config::Config;
 use crate::structs::context::{UnifyContext, UnifyedContext};
 use crate::structs::middleware::MiddlewareChain;
+use crate::structs::struct_to_vec::param;
 use crate::structs::tg::TGGetUpdates;
 use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
 
@@ -29,16 +32,16 @@ async fn get_vk_updates(
     key: &mut str,
     ts: &mut i64,
     tx: &Sender<UnifyedContext>,
-    config: &Config,
+    config: Arc<Config>,
 ) {
     let get_updates = request(
         server,
         &config.vk_access_token,
         vec![
-            ("act", "a_check"),
-            ("key", key),
-            ("ts", &ts.to_string()),
-            ("wait", "25"),
+            param("act", "a_check"),
+            param("key", key.to_string()),
+            param("ts", ts.to_string()),
+            param("wait", "25"),
         ],
     )
     .await;
@@ -54,19 +57,22 @@ async fn get_vk_updates(
     );
 
     for update in updates.updates {
-        let unified = update.unify(config);
+        let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
     }
 
     *ts += 1;
 }
 
-async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
+async fn get_vk_settings(config: Arc<Config>) -> VKGetServerResponse {
     let vk_group_id = config.vk_group_id.to_string();
     let get_server = request(
         "https://api.vk.com/method/groups.getLongPollServer",
         &config.vk_access_token,
-        vec![("group_id", &vk_group_id), ("v", &config.vk_api_version)],
+        vec![
+            param("group_id", vk_group_id),
+            param("v", &config.vk_api_version),
+        ],
     )
     .await
     .unwrap();
@@ -80,7 +86,7 @@ async fn get_vk_settings(config: &Config) -> VKGetServerResponse {
     server
 }
 
-async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &Config) {
+async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: Arc<Config>) {
     let get_updates = request(
         &format!(
             "https://api.telegram.org/{}/getUpdates",
@@ -88,9 +94,9 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
         ),
         "",
         vec![
-            ("timeout", "25"),
-            ("offset", &offset.to_string()),
-            ("limit", "100"),
+            param("timeout", "25"),
+            param("offset", offset.to_string()),
+            param("limit", "100"),
         ],
     )
     .await;
@@ -106,9 +112,9 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
     );
 
     for update in updates.result {
-        let unified = update.unify(config);
+        let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
-        
+
         *offset = update.update_id + 1;
     }
 }
@@ -156,8 +162,8 @@ async fn get_tg_updates(offset: &mut i64, tx: &Sender<UnifyedContext>, config: &
 ///```
 pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) {
     info!("Start getting updates...");
-    let config = config.check();
-    let vk_settings = get_vk_settings(&config).await;
+    let config = Arc::new(config.check());
+    let vk_settings = get_vk_settings(config.clone()).await;
     let mut server = vk_settings.response.server;
     let mut key = vk_settings.response.key;
     let mut ts = vk_settings.response.ts.parse::<i64>().unwrap();
@@ -188,8 +194,8 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
 
     let mut interval = interval(Duration::from_secs(600));
     loop {
-        let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx, &config);
-        let tg_task = get_tg_updates(&mut offset, &tx, &config);
+        let vk_task = get_vk_updates(&mut server, &mut key, &mut ts, &tx, config.clone());
+        let tg_task = get_tg_updates(&mut offset, &tx, config.clone());
 
         select! {
             _ = vk_task => {
@@ -197,7 +203,7 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
             _ = tg_task => {
             },
             _ = interval.tick() => {
-            let vk_settings = get_vk_settings(&config).await;
+            let vk_settings = get_vk_settings(config.clone()).await;
             server = vk_settings.response.server;
             key = vk_settings.response.key;
             ts = vk_settings.response.ts.parse::<i64>().unwrap();

@@ -1,7 +1,9 @@
+use std::borrow::Cow;
+
 use log::debug;
 use serde_json::Value;
 
-use crate::structs::context::Platform;
+use crate::structs::{context::Platform, struct_to_vec::param};
 
 use super::*;
 /// Send request to VK or Telegram API
@@ -31,7 +33,7 @@ use super::*;
 pub async fn api_call(
     platform: Platform,
     method: &str,
-    mut params: Vec<(&str, &str)>,
+    mut params: Vec<(Cow<'_, str>, Cow<'_, str>)>,
     config: &Config,
 ) -> Result<Value, String> {
     let url = match platform {
@@ -46,7 +48,7 @@ pub async fn api_call(
         Platform::Telegram => "".to_owned(),
     };
     if platform == Platform::VK {
-        params.push(("v", &config.vk_api_version));
+        params.push(param("v", &config.vk_api_version));
     }
     let response = request(&url, &access_token, params).await;
     match response {

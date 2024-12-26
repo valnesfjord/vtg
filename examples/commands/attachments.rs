@@ -62,7 +62,7 @@ pub async fn send_attachments(ctx: UnifyedContext) {
             },
             Attachment {
                 url:
-                    "https://w.forfun.com/fetch/a9/a908815bda3f615bfe16bef28c6389db.jpeg"
+                    "https://pivoug.ru/d/54702081_2.jpg"
                         .to_string(),
                 ftype: FileType::Photo,
             },

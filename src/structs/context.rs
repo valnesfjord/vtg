@@ -1,5 +1,6 @@
 use serde_json::Value;
 use std::any::Any;
+use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
 use crate::client::requests::File;
@@ -12,7 +13,7 @@ use crate::upload::{
 };
 
 use super::config::Config;
-use super::struct_to_vec::struct_to_vec;
+use super::struct_to_vec::{param, struct_to_vec};
 use super::tg_api::TGSendMessageOptions;
 use super::vk_api::VKMessagesSendOptions;
 
@@ -78,7 +79,7 @@ pub enum EventType {
 /// # Methods
 /// * `unify` - Unify context
 pub trait UnifyContext {
-    fn unify(&self, config: &Config) -> UnifyedContext;
+    fn unify(&self, config: Arc<Config>) -> UnifyedContext;
 }
 /// Options to send message
 /// # Fields
@@ -211,20 +212,19 @@ impl MessageBuilder {
                 tokio::task::spawn(async move {
                     let mut vk = struct_to_vec(vk_options.clone());
                     if vk_options.message.is_none() || vk_options.message.unwrap().is_empty() {
-                        vk.push(("message", message_str.as_str()));
+                        vk.push(param("message", message_str));
                     }
-                    let peer_id_str = peer_id.to_string();
                     if vk_options.peer_id.is_none() || vk_options.peer_id.unwrap() == 0 {
-                        vk.push(("peer_id", &peer_id_str));
+                        vk.push(param("peer_id", peer_id.to_string()));
                     }
-                    vk.push(("random_id", "0"));
+                    vk.push(param("random_id", "0"));
                     let j;
                     if keyboard.is_some() && vk_options.keyboard.is_none() {
                         j = serde_json::to_string(&keyboard.clone().unwrap().vk_buttons).unwrap();
-                        vk.push(("keyboard", j.as_str()));
+                        vk.push(param("keyboard", j));
                     }
                     if !attachment.is_empty() {
-                        vk.push(("attachment", &attachment));
+                        vk.push(param("attachment", attachment));
                     }
                     api_call(Platform::VK, "messages.send", vk, &config.clone())
                         .await
@@ -240,11 +240,10 @@ impl MessageBuilder {
                 tokio::task::spawn(async move {
                     let mut tg = struct_to_vec(tg_options.clone());
                     if tg_options.text.is_none() || tg_options.text.unwrap().is_empty() {
-                        tg.push(("text", message_str.as_str()));
+                        tg.push(param("text", &message_str));
                     }
-                    let peer_id_str = peer_id.to_string();
                     if tg_options.chat_id.is_none() || tg_options.chat_id.unwrap() == 0 {
-                        tg.push(("chat_id", &peer_id_str));
+                        tg.push(param("chat_id", peer_id.to_string()));
                     }
                     let j: String;
                     if keyboard.is_some() && tg_options.reply_markup.is_none() {
@@ -260,10 +259,10 @@ impl MessageBuilder {
                             })
                             .unwrap()
                         };
-                        tg.push(("reply_markup", j.as_str()));
+                        tg.push(param("reply_markup", j));
                     }
                     if parse_mode != "HTML" {
-                        tg.push(("parse_mode", parse_mode.as_str()));
+                        tg.push(param("parse_mode", parse_mode));
                     }
                     if attachments.is_empty() && files.is_empty() {
                         api_call(Platform::Telegram, "sendMessage", tg, &config.clone())
@@ -359,9 +358,9 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", peer_id.as_str()),
-                            ("message", message_str.as_str()),
-                            ("random_id", "0"),
+                            param("peer_id", peer_id),
+                            param("message", message_str),
+                            param("random_id", "0"),
                         ],
                         &config,
                     )
@@ -374,10 +373,7 @@ impl UnifyedContext {
                     api_call(
                         Platform::Telegram,
                         "sendMessage",
-                        vec![
-                            ("chat_id", peer_id.as_str()),
-                            ("text", message_str.as_str()),
-                        ],
+                        vec![param("chat_id", peer_id), param("text", message_str)],
                         &config,
                     )
                     .await
@@ -404,9 +400,9 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", peer_id.as_str()),
-                            ("message", message_str.as_str()),
-                            ("random_id", "0"),
+                            param("peer_id", peer_id),
+                            param("message", message_str),
+                            param("random_id", "0"),
                         ],
                         &config,
                     )
@@ -420,9 +416,9 @@ impl UnifyedContext {
                         Platform::Telegram,
                         "sendMessage",
                         vec![
-                            ("chat_id", peer_id.as_str()),
-                            ("text", message_str.as_str()),
-                            ("parse_mode", "HTML"),
+                            param("chat_id", peer_id),
+                            param("text", message_str),
+                            param("parse_mode", "HTML"),
                         ],
                         &config,
                     )
@@ -462,10 +458,10 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", peer_id.as_str()),
-                            ("message", message_str.as_str()),
-                            ("random_id", "0"),
-                            ("keyboard", j.as_str()),
+                            param("peer_id", peer_id),
+                            param("message", message_str),
+                            param("random_id", "0"),
+                            param("keyboard", j),
                         ],
                         &config,
                     )
@@ -491,10 +487,10 @@ impl UnifyedContext {
                         Platform::Telegram,
                         "sendMessage",
                         vec![
-                            ("chat_id", peer_id.as_str()),
-                            ("text", message_str.as_str()),
-                            ("reply_markup", j.as_str()),
-                            ("parse_mode", "HTML"),
+                            param("chat_id", peer_id),
+                            param("text", message_str),
+                            param("reply_markup", j),
+                            param("parse_mode", "HTML"),
                         ],
                         &config,
                     )
@@ -536,10 +532,10 @@ impl UnifyedContext {
         match self.platform {
             Platform::VK => {
                 let mut vk = struct_to_vec(options.vk);
-                if !vk.contains(&("message", message)) {
-                    vk.push(("message", message));
+                if !vk.contains(&param("message", message)) {
+                    vk.push(param("message", message));
                 }
-                vk.push(("random_id", "0"));
+                vk.push(param("random_id", "0"));
                 tokio::task::spawn(async move {
                     api_call(Platform::VK, "messages.send", vk, &config)
                         .await
@@ -548,8 +544,8 @@ impl UnifyedContext {
             }
             Platform::Telegram => {
                 let mut tg = struct_to_vec(options.tg);
-                if !tg.contains(&("text", message)) {
-                    tg.push(("text", message));
+                if !tg.contains(&param("text", message)) {
+                    tg.push(param("text", message));
                 }
                 tokio::task::spawn(async move {
                     api_call(Platform::Telegram, "sendMessage", tg, &config)
@@ -589,12 +585,12 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", &peer_id.to_string()),
-                            ("message", &message_str),
-                            ("random_id", "0"),
-                            (
+                            param("peer_id", peer_id.to_string()),
+                            param("message", &message_str),
+                            param("random_id", "0"),
+                            param(
                                 "attachment",
-                                &upload_vk_attachments(attachments, &config, peer_id)
+                                upload_vk_attachments(attachments, &config, peer_id)
                                     .await
                                     .unwrap(),
                             ),
@@ -650,12 +646,12 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", &peer_id.to_string()),
-                            ("message", &message_str),
-                            ("random_id", "0"),
-                            (
+                            param("peer_id", peer_id.to_string()),
+                            param("message", &message_str),
+                            param("random_id", "0"),
+                            param(
                                 "attachment",
-                                &upload_vk_attachments(attachments, &config, peer_id)
+                                upload_vk_attachments(attachments, &config, peer_id)
                                     .await
                                     .unwrap(),
                             ),
@@ -683,7 +679,7 @@ impl UnifyedContext {
         &self,
         platform: Platform,
         method: &str,
-        params: Vec<(&str, &str)>,
+        params: Vec<(Cow<'_, str>, Cow<'_, str>)>,
     ) -> Value {
         api_call(platform, method, params, &self.config)
             .await
