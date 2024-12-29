@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -9,17 +9,25 @@ where
 {
     let value = serde_json::to_value(&s).expect("Error serializing structure to JSON");
 
-    let map: HashMap<String, Value> = match value {
-        Value::Object(map) => map.into_iter().collect(),
-        _ => panic!("Expected JSON object to convert to HashMap"),
-    };
+    match value {
+        Value::Object(map) => {
+            let mut vec = Vec::with_capacity(map.len());
 
-    let string_map: HashMap<Cow<'a, str>, Cow<'a, str>> = map
-        .into_iter()
-        .map(|(k, v)| (Cow::Owned(k), Cow::Owned(v.to_string())))
-        .collect();
-
-    string_map.into_iter().collect()
+            for (k, v) in map {
+                let value = match v {
+                    Value::String(s) => Cow::Owned(s),
+                    Value::Number(n) => Cow::Owned(n.to_string()),
+                    Value::Bool(b) => Cow::Owned(b.to_string()),
+                    Value::Null => Cow::Borrowed(""),
+                    Value::Array(a) => Cow::Owned(serde_json::to_string(&a).unwrap()),
+                    Value::Object(o) => Cow::Owned(serde_json::to_string(&o).unwrap()),
+                };
+                vec.push((Cow::Owned(k), value));
+            }
+            vec
+        }
+        _ => panic!("Expected JSON object to convert to Vec"),
+    }
 }
 
 pub fn param<'a, S1, S2>(s1: S1, s2: S2) -> (Cow<'a, str>, Cow<'a, str>)

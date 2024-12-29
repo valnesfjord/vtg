@@ -174,10 +174,8 @@ pub async fn files_request(
     let mut body = vec![];
     let query = match data {
         Some(data) => {
-            "?".to_owned()
-                + &form_urlencoded::Serializer::new(String::new())
-                    .extend_pairs(data)
-                    .finish()
+            let mut serializer = FastFormSerializer::new_vec(&data);
+            "?".to_owned() + &serializer.extend_vec_pairs(&data).finish()
         }
         None => String::new(),
     };

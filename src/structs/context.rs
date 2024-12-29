@@ -202,17 +202,16 @@ impl MessageBuilder {
     pub async fn send(self) {
         let peer_id = self.chat_id;
         let config = self.config.clone();
-        let message_str = self.message.to_owned();
         match self.platform {
             Platform::VK => {
-                let vk_options = self.vk_options.clone().unwrap_or_default();
-                let keyboard = self.keyboard.clone();
                 let attachments = self.make_vk_attachments(config.clone(), peer_id).await;
+                let vk_options = self.vk_options.unwrap_or_default();
+                let keyboard = self.keyboard;
                 let attachment = attachments.unwrap_or("".to_string());
                 tokio::task::spawn(async move {
                     let mut vk = struct_to_vec(vk_options.clone());
                     if vk_options.message.is_none() || vk_options.message.unwrap().is_empty() {
-                        vk.push(param("message", message_str));
+                        vk.push(param("message", self.message));
                     }
                     if vk_options.peer_id.is_none() || vk_options.peer_id.unwrap() == 0 {
                         vk.push(param("peer_id", peer_id.to_string()));
@@ -220,7 +219,7 @@ impl MessageBuilder {
                     vk.push(param("random_id", "0"));
                     let j;
                     if keyboard.is_some() && vk_options.keyboard.is_none() {
-                        j = serde_json::to_string(&keyboard.clone().unwrap().vk_buttons).unwrap();
+                        j = serde_json::to_string(&keyboard.unwrap().vk_buttons).unwrap();
                         vk.push(param("keyboard", j));
                     }
                     if !attachment.is_empty() {
@@ -232,30 +231,31 @@ impl MessageBuilder {
                 });
             }
             Platform::Telegram => {
-                let tg_options = self.tg_options.clone().unwrap_or_default();
-                let keyboard = self.keyboard.clone();
-                let parse_mode = self.parse_mode.clone().unwrap_or("HTML".to_string());
-                let attachments = self.attachments.clone().unwrap_or_default();
-                let files = self.files.clone().unwrap_or_default();
+                let tg_options = self.tg_options.unwrap_or_default();
+                let keyboard = self.keyboard;
+                let parse_mode = self.parse_mode.unwrap_or("HTML".to_string());
+                let attachments = self.attachments.unwrap_or_default();
+                let files = self.files.unwrap_or_default();
                 tokio::task::spawn(async move {
                     let mut tg = struct_to_vec(tg_options.clone());
                     if tg_options.text.is_none() || tg_options.text.unwrap().is_empty() {
-                        tg.push(param("text", &message_str));
+                        tg.push(param("text", self.message.clone()));
                     }
                     if tg_options.chat_id.is_none() || tg_options.chat_id.unwrap() == 0 {
                         tg.push(param("chat_id", peer_id.to_string()));
                     }
                     let j: String;
                     if keyboard.is_some() && tg_options.reply_markup.is_none() {
-                        j = if !keyboard.clone().unwrap().inline {
+                        let keyboard = keyboard.unwrap();
+                        j = if !keyboard.inline {
                             serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
-                                keyboard: keyboard.clone().unwrap().tg_buttons.unwrap(),
-                                one_time_keyboard: keyboard.clone().unwrap().one_time,
+                                keyboard: keyboard.tg_buttons.unwrap(),
+                                one_time_keyboard: keyboard.one_time,
                             })
                             .unwrap()
                         } else {
                             serde_json::to_string(&keyboard::InlineKeyboardMarkup {
-                                inline_keyboard: keyboard.clone().unwrap().tg_buttons.unwrap(),
+                                inline_keyboard: keyboard.tg_buttons.unwrap(),
                             })
                             .unwrap()
                         };
@@ -271,10 +271,10 @@ impl MessageBuilder {
                         return;
                     }
                     if attachments.is_empty() {
-                        send_tg_attachments(attachments, &config, peer_id, &message_str).await;
+                        send_tg_attachments(attachments, &config, peer_id, &self.message).await;
                         return;
                     }
-                    send_tg_attachment_files(files, &config, peer_id, &message_str).await;
+                    send_tg_attachment_files(files, &config, peer_id, &self.message).await;
                 });
             }
         }

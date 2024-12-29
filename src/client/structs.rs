@@ -14,7 +14,6 @@ impl FastFormSerializer {
             buffer: String::with_capacity(capacity),
         }
     }
-
     pub fn extend_pairs<'a, I>(&mut self, pairs: I) -> &mut Self
     where
         I: IntoIterator<Item = &'a (Cow<'a, str>, Cow<'a, str>)>,
@@ -24,6 +23,47 @@ impl FastFormSerializer {
                 self.buffer.push('&');
             }
 
+            for &b in key.as_bytes() {
+                if should_encode(b) {
+                    self.buffer.push('%');
+                    self.buffer.push_str(&hex(b));
+                } else {
+                    self.buffer.push(b as char);
+                }
+            }
+
+            self.buffer.push('=');
+
+            for &b in value.as_bytes() {
+                if should_encode(b) {
+                    self.buffer.push('%');
+                    self.buffer.push_str(&hex(b));
+                } else {
+                    self.buffer.push(b as char);
+                }
+            }
+        }
+        self
+    }
+
+    pub fn new_vec(pairs: &[(&str, &str)]) -> Self {
+        let capacity = pairs
+            .iter()
+            .map(|(k, v)| k.len() * 3 + v.len() * 3 + 2)
+            .sum();
+
+        Self {
+            buffer: String::with_capacity(capacity),
+        }
+    }
+    pub fn extend_vec_pairs<'a, I>(&mut self, pairs: I) -> &mut Self
+    where
+        I: IntoIterator<Item = &'a (&'a str, &'a str)>,
+    {
+        for (key, value) in pairs {
+            if !self.buffer.is_empty() {
+                self.buffer.push('&');
+            }
             for &b in key.as_bytes() {
                 if should_encode(b) {
                     self.buffer.push('%');
