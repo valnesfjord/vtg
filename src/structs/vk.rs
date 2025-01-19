@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use super::config::Config;
 use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
@@ -251,7 +251,7 @@ impl UnifyContext for VKUpdate {
             id: message_id,
             r#type,
             platform: Platform::VK,
-            data: Arc::new(Mutex::new(Box::new(()))),
+            data: String::new(),
             config,
             event,
             attachments,

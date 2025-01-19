@@ -1,8 +1,7 @@
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::any::Any;
 use std::borrow::Cow;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::client::requests::File;
 use crate::structs::keyboard::{self, Keyboard};
@@ -39,7 +38,7 @@ pub struct UnifyedContext {
     pub id: i64,
     pub r#type: EventType,
     pub platform: Platform,
-    pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    pub data: String,
     pub event: String,
     pub attachments: String,
     pub config: Arc<Config>,
@@ -693,18 +692,16 @@ impl UnifyedContext {
     /// ```
     /// ctx.set_data("Hello, world!");
     /// ```
-    pub fn set_data<T: Any + Send + Sync>(&self, data: T) {
-        let mut data_to_edit = self.data.lock().unwrap();
-        *data_to_edit = Box::new(data);
+    pub fn set_data(&mut self, data: String) {
+        self.data = data;
     }
     /// Get data from context
     /// # Examples
     /// ```
     /// let data = ctx.get_data::<String>().unwrap();
     /// ```
-    pub fn get_data<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
-        let data = self.data.lock().unwrap();
-        data.downcast_ref::<T>().cloned()
+    pub fn get_data<T: DeserializeOwned>(&self) -> Option<T> {
+        serde_json::from_str(&self.data).ok()
     }
     /// Get event from context
     ///

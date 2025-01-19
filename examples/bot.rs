@@ -25,7 +25,7 @@ async fn catch_new_message(mut ctx: UnifyedContext) -> UnifyedContext {
         return ctx;
     }
 
-    ctx.set_data(54);
+    ctx.set_data(54.to_string());
 
     if ctx.platform == Platform::VK {
         let event = ctx.get_event::<VKMessageNew>().unwrap();

@@ -14,7 +14,7 @@ pub async fn test_matches(ctx: UnifyedContext, caps: Captures) {
 }
 
 pub async fn test_data(ctx: UnifyedContext) {
-    let data = ctx.get_data::<i32>().unwrap();
+    let data: i32 = ctx.data.parse().unwrap();
 
     println!("Data: {:?}", data);
 
@@ -44,6 +44,6 @@ pub async fn test_event(ctx: UnifyedContext) {
             }
         }
     }
-    
+
     ctx.send("test event (check console)");
 }
