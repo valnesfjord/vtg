@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use super::tg::TGMessage;
 
@@ -204,6 +205,7 @@ pub fn unify_attachments(message: Option<TGMessage>) -> String {
     .unwrap()
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGAttachment {
     pub audio: Option<Audio>,

@@ -1,9 +1,9 @@
-
-
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use super::vk::VKMessage;
 
+#[skip_serializing_none]
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKAttachment {
     pub r#type: String,

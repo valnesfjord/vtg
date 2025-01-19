@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::sync::{Arc, Mutex};
 
 use super::config::Config;
@@ -34,6 +35,7 @@ pub enum VKObject {
     MessageNew(VKMessageNew),
     MessageEvent(VKMessageEvent),
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VKMessageEvent {
     pub user_id: i64,
@@ -47,6 +49,7 @@ pub struct VKMessageNew {
     pub message: VKMessage,
 }
 
+#[skip_serializing_none]
 #[derive(Deserialize, Clone, Debug, Serialize, Default)]
 /// VK Message struct, contains all the information about the new message
 pub struct VKMessage {

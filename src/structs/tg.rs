@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use std::sync::{Arc, Mutex};
 
@@ -22,6 +23,7 @@ pub struct TGUpdate {
     pub update_id: i64,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGCallbackQuery {
     pub id: String,
@@ -32,6 +34,7 @@ pub struct TGCallbackQuery {
     pub inline_message_id: Option<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGChosenInlineResult {
     pub result_id: String,
@@ -40,6 +43,7 @@ pub struct TGChosenInlineResult {
     pub inline_message_id: Option<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGInlineQuery {
     pub id: String,
@@ -49,6 +53,7 @@ pub struct TGInlineQuery {
     pub chat_type: Option<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Deserialize, Clone, Debug, Default, Serialize)]
 pub struct TGMessage {
     pub text: Option<String>,
