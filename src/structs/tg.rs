@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::any::Any;
 
 use std::sync::{Arc, Mutex};
 
@@ -13,7 +12,7 @@ pub struct TGGetUpdates {
     pub result: Vec<TGUpdate>,
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TGUpdate {
     pub message: Option<TGMessage>,
     pub edited_message: Option<TGMessage>,
@@ -23,7 +22,7 @@ pub struct TGUpdate {
     pub update_id: i64,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGCallbackQuery {
     pub id: String,
     pub from: TGFrom,
@@ -33,7 +32,7 @@ pub struct TGCallbackQuery {
     pub inline_message_id: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGChosenInlineResult {
     pub result_id: String,
     pub from: TGFrom,
@@ -41,7 +40,7 @@ pub struct TGChosenInlineResult {
     pub inline_message_id: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TGInlineQuery {
     pub id: String,
     pub from: TGFrom,
@@ -50,7 +49,7 @@ pub struct TGInlineQuery {
     pub chat_type: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
 pub struct TGMessage {
     pub text: Option<String>,
     pub from: TGFrom,
@@ -112,7 +111,7 @@ pub struct TGUser {
     pub language_code: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TGFrom {
     pub id: i64,
     pub is_bot: bool,
@@ -124,7 +123,7 @@ pub struct TGFrom {
     pub added_to_attachment_menu: Option<bool>,
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TGChat {
     pub id: i64,
     pub r#type: String,
@@ -137,13 +136,13 @@ pub struct TGChat {
 
 impl UnifyContext for TGUpdate {
     fn unify(&self, config: Arc<Config>) -> UnifyedContext {
-        let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
+        let event: String;
         let (r#type, text, chat_id, message_id, from_id) = match self {
             TGUpdate {
                 message: Some(message),
                 ..
             } => {
-                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                event = serde_json::to_string(&message).unwrap();
                 (
                     EventType::MessageNew,
                     message.text.clone(),
@@ -156,7 +155,7 @@ impl UnifyContext for TGUpdate {
                 edited_message: Some(message),
                 ..
             } => {
-                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                event = serde_json::to_string(&message).unwrap();
                 (
                     EventType::MessageEdit,
                     message.text.clone(),
@@ -169,7 +168,7 @@ impl UnifyContext for TGUpdate {
                 inline_query: Some(query),
                 ..
             } => {
-                event = Arc::new(Mutex::new(Box::new(query.clone())));
+                event = serde_json::to_string(&query).unwrap();
                 (
                     EventType::InlineQuery,
                     Some(query.query.clone()),
@@ -182,7 +181,7 @@ impl UnifyContext for TGUpdate {
                 chosen_inline_result: Some(result),
                 ..
             } => {
-                event = Arc::new(Mutex::new(Box::new(result.clone())));
+                event = serde_json::to_string(&result).unwrap();
                 (
                     EventType::ChosenInlineResult,
                     Some(result.query.clone()),
@@ -195,7 +194,7 @@ impl UnifyContext for TGUpdate {
                 callback_query: Some(query),
                 ..
             } => {
-                event = Arc::new(Mutex::new(Box::new(query.clone())));
+                event = serde_json::to_string(&query).unwrap();
                 (
                     EventType::CallbackQuery,
                     query.data.clone(),
@@ -206,7 +205,7 @@ impl UnifyContext for TGUpdate {
             }
 
             _ => {
-                event = Arc::new(Mutex::new(Box::new(0)));
+                event = String::new();
                 (EventType::Unknown, None, 0, 0, 0)
             }
         };

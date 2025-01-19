@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use super::config::Config;
@@ -35,7 +34,7 @@ pub enum VKObject {
     MessageNew(VKMessageNew),
     MessageEvent(VKMessageEvent),
 }
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VKMessageEvent {
     pub user_id: i64,
     pub peer_id: i64,
@@ -43,7 +42,7 @@ pub struct VKMessageEvent {
     pub payload: String,
     pub conversation_message_id: i64,
 }
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VKMessageNew {
     pub message: VKMessage,
 }
@@ -206,10 +205,10 @@ pub struct VKChatPhoto {
 
 impl UnifyContext for VKUpdate {
     fn unify(&self, config: Arc<Config>) -> UnifyedContext {
-        let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
+        let event: String;
         let (r#type, text, chat_id, message_id, from_id, attachments) = match self.object.clone() {
             Some(VKObject::MessageNew(message)) => {
-                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                event = serde_json::to_string(&message).unwrap();
                 (
                     EventType::MessageNew,
                     message.message.text.clone(),
@@ -220,7 +219,7 @@ impl UnifyContext for VKUpdate {
                 )
             }
             Some(VKObject::MessageEvent(message)) => {
-                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                event = serde_json::to_string(&message).unwrap();
                 (
                     EventType::CallbackQuery,
                     message.payload,
@@ -231,7 +230,7 @@ impl UnifyContext for VKUpdate {
                 )
             }
             None => {
-                event = Arc::new(Mutex::new(Box::new(())));
+                event = String::new();
                 (
                     EventType::Unknown,
                     String::new(),

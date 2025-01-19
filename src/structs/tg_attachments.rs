@@ -1,8 +1,3 @@
-use std::{
-    any::Any,
-    sync::{Arc, Mutex},
-};
-
 use serde::{Deserialize, Serialize};
 
 use super::tg::TGMessage;
@@ -188,14 +183,12 @@ pub struct WebAppData {
     pub button_text: String,
 }
 
-pub fn unify_attachments(
-    message: Option<TGMessage>,
-) -> Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>> {
+pub fn unify_attachments(message: Option<TGMessage>) -> String {
     if message.is_none() {
-        return Arc::new(Mutex::new(Vec::new()));
+        return String::new();
     }
     let message = message.unwrap();
-    let attachments: Vec<Box<dyn Any + Send + Sync>> = vec![Box::new(TGAttachment {
+    serde_json::to_string(&TGAttachment {
         audio: message.audio,
         document: message.document,
         photo: message.photo,
@@ -207,8 +200,8 @@ pub fn unify_attachments(
         contact: message.contact,
         location: message.location,
         venue: message.venue,
-    })];
-    Arc::new(Mutex::new(attachments))
+    })
+    .unwrap()
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

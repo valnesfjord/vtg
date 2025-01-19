@@ -1,3 +1,4 @@
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::any::Any;
 use std::borrow::Cow;
@@ -39,8 +40,8 @@ pub struct UnifyedContext {
     pub r#type: EventType,
     pub platform: Platform,
     pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
-    pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
-    pub attachments: Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>>,
+    pub event: String,
+    pub attachments: String,
     pub config: Arc<Config>,
 }
 
@@ -724,9 +725,8 @@ impl UnifyedContext {
     ///    }
     ///}
     /// ```
-    pub fn get_event<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
-        let event = self.event.lock().unwrap();
-        event.downcast_ref::<T>().cloned()
+    pub fn get_event<T: DeserializeOwned>(&self) -> Option<T> {
+        serde_json::from_str(&self.event).ok()
     }
     /// Get attachments from context
     ///
@@ -745,12 +745,7 @@ impl UnifyedContext {
     ///       }
     ///   }
     /// ```
-    pub fn get_attachments<T: Any + Send + Sync + Clone>(&self) -> Option<Vec<T>> {
-        let attachments = self.attachments.lock().unwrap();
-        let result: Option<Vec<T>> = attachments
-            .iter()
-            .map(|attachment| attachment.downcast_ref::<T>().cloned())
-            .collect();
-        result
+    pub fn get_attachments<T: DeserializeOwned>(&self) -> Option<Vec<T>> {
+        serde_json::from_str(&self.attachments).ok()
     }
 }
