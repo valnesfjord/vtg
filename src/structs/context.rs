@@ -685,20 +685,25 @@ impl UnifyedContext {
             .await
             .unwrap()
     }
-    /// Set data to context
+    /// Set String data to context
     /// # Arguments
-    /// * `data` - Data to set
+    /// * `data` - String Data to set
     /// # Examples
     /// ```
-    /// ctx.set_data("Hello, world!");
+    /// ctx.set_data("Hello, world!".to_string());
     /// ```
     pub fn set_data(&mut self, data: String) {
         self.data = data;
     }
-    /// Get data from context
+    /// Deserialize JSON data from context
     /// # Examples
     /// ```
-    /// let data = ctx.get_data::<String>().unwrap();
+    /// #[derive(Deserialize)]
+    /// struct Test {
+    ///    test: String,
+    /// }
+    /// ctx.data = "{"test": "test"}".to_string();
+    /// let data = ctx.get_data::<Test>().unwrap();
     /// ```
     pub fn get_data<T: DeserializeOwned>(&self) -> Option<T> {
         serde_json::from_str(&self.data).ok()

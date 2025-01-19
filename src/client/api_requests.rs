@@ -19,8 +19,9 @@ use super::*;
 /// # Examples
 /// ```no_run
 /// use vtg::client::api_requests::api_call;
-/// use vtg::structs::context::Platform;
-/// let response = api_call(Platform::VK, "messages.send", vec![("peer_id", "1"), ("message", "Hello, world!")], &config).await;
+/// use vtg::structs::{context::Platform, struct_to_vec::param};
+///
+/// let response = api_call(Platform::VK, "messages.send", vec![param("peer_id", "1"), param("message", "Hello, world!")], &config).await;
 /// match response {
 ///   Ok(response) => {
 ///      println!("Response: {}", response);
