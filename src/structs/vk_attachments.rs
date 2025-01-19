@@ -1,12 +1,9 @@
-use std::{
-    any::Any,
-    sync::{Arc, Mutex},
-};
-
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use super::vk::VKMessage;
 
+#[skip_serializing_none]
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct VKAttachment {
     pub r#type: String,
@@ -176,16 +173,14 @@ pub struct Views {
     pub count: i64,
 }
 
-pub fn unify_attachments(
-    message: Option<VKMessage>,
-) -> Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>> {
+pub fn unify_attachments(message: Option<VKMessage>) -> String {
     if message.is_none() {
-        return Arc::new(Mutex::new(Vec::new()));
+        return String::new();
     }
     let message = message.unwrap();
-    let mut attachments: Vec<Box<dyn Any + Send + Sync>> = Vec::new();
+    let mut attachments: Vec<String> = Vec::new();
     for attachment in message.attachments.unwrap_or_default() {
-        attachments.push(Box::new(attachment));
+        attachments.push(serde_json::to_string(&attachment).unwrap());
     }
-    Arc::new(Mutex::new(attachments))
+    serde_json::to_string(&attachments).unwrap()
 }

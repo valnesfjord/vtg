@@ -57,6 +57,7 @@ pub async fn send_with_options(ctx: UnifyedContext) {
 
 pub async fn send_with_api_request(ctx: UnifyedContext) {
     if ctx.platform == Platform::VK {
+        let start_time = std::time::Instant::now();
         vk_api::Messages::send(
             VKMessagesSendOptions {
                 peer_id: Some(ctx.peer_id),
@@ -64,21 +65,23 @@ pub async fn send_with_api_request(ctx: UnifyedContext) {
                 random_id: Some(0),
                 ..Default::default()
             },
-            ctx.config,
+            ctx.config.clone(),
         )
         .await
         .unwrap();
+        ctx.send(&format!("VK API request time: {:?}", start_time.elapsed()));
         return;
     }
-    
+    let start_time = std::time::Instant::now();
     tg_api::Api::send_message(
         TGSendMessageOptions {
             chat_id: Some(ctx.peer_id),
             text: Some("testing api requests".to_string()),
             ..Default::default()
         },
-        ctx.config,
+        ctx.config.clone(),
     )
     .await
     .unwrap();
+    ctx.send(&format!("TG API request time: {:?}", start_time.elapsed()));
 }

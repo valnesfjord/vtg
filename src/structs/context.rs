@@ -1,6 +1,7 @@
+use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::any::Any;
-use std::sync::{Arc, Mutex};
+use std::borrow::Cow;
+use std::sync::Arc;
 
 use crate::client::requests::File;
 use crate::structs::keyboard::{self, Keyboard};
@@ -12,7 +13,7 @@ use crate::upload::{
 };
 
 use super::config::Config;
-use super::struct_to_vec::struct_to_vec;
+use super::struct_to_vec::{param, struct_to_vec};
 use super::tg_api::TGSendMessageOptions;
 use super::vk_api::VKMessagesSendOptions;
 
@@ -37,9 +38,9 @@ pub struct UnifyedContext {
     pub id: i64,
     pub r#type: EventType,
     pub platform: Platform,
-    pub data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
-    pub event: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
-    pub attachments: Arc<Mutex<Vec<Box<dyn Any + Send + Sync>>>>,
+    pub data: String,
+    pub event: String,
+    pub attachments: String,
     pub config: Arc<Config>,
 }
 
@@ -78,7 +79,7 @@ pub enum EventType {
 /// # Methods
 /// * `unify` - Unify context
 pub trait UnifyContext {
-    fn unify(&self, config: &Config) -> UnifyedContext;
+    fn unify(&self, config: Arc<Config>) -> UnifyedContext;
 }
 /// Options to send message
 /// # Fields
@@ -201,30 +202,28 @@ impl MessageBuilder {
     pub async fn send(self) {
         let peer_id = self.chat_id;
         let config = self.config.clone();
-        let message_str = self.message.to_owned();
         match self.platform {
             Platform::VK => {
-                let vk_options = self.vk_options.clone().unwrap_or_default();
-                let keyboard = self.keyboard.clone();
                 let attachments = self.make_vk_attachments(config.clone(), peer_id).await;
+                let vk_options = self.vk_options.unwrap_or_default();
+                let keyboard = self.keyboard;
                 let attachment = attachments.unwrap_or("".to_string());
                 tokio::task::spawn(async move {
                     let mut vk = struct_to_vec(vk_options.clone());
                     if vk_options.message.is_none() || vk_options.message.unwrap().is_empty() {
-                        vk.push(("message", message_str.as_str()));
+                        vk.push(param("message", self.message));
                     }
-                    let peer_id_str = peer_id.to_string();
                     if vk_options.peer_id.is_none() || vk_options.peer_id.unwrap() == 0 {
-                        vk.push(("peer_id", &peer_id_str));
+                        vk.push(param("peer_id", peer_id.to_string()));
                     }
-                    vk.push(("random_id", "0"));
+                    vk.push(param("random_id", "0"));
                     let j;
                     if keyboard.is_some() && vk_options.keyboard.is_none() {
-                        j = serde_json::to_string(&keyboard.clone().unwrap().vk_buttons).unwrap();
-                        vk.push(("keyboard", j.as_str()));
+                        j = serde_json::to_string(&keyboard.unwrap().vk_buttons).unwrap();
+                        vk.push(param("keyboard", j));
                     }
                     if !attachment.is_empty() {
-                        vk.push(("attachment", &attachment));
+                        vk.push(param("attachment", attachment));
                     }
                     api_call(Platform::VK, "messages.send", vk, &config.clone())
                         .await
@@ -232,38 +231,38 @@ impl MessageBuilder {
                 });
             }
             Platform::Telegram => {
-                let tg_options = self.tg_options.clone().unwrap_or_default();
-                let keyboard = self.keyboard.clone();
-                let parse_mode = self.parse_mode.clone().unwrap_or("HTML".to_string());
-                let attachments = self.attachments.clone().unwrap_or_default();
-                let files = self.files.clone().unwrap_or_default();
+                let tg_options = self.tg_options.unwrap_or_default();
+                let keyboard = self.keyboard;
+                let parse_mode = self.parse_mode.unwrap_or("HTML".to_string());
+                let attachments = self.attachments.unwrap_or_default();
+                let files = self.files.unwrap_or_default();
                 tokio::task::spawn(async move {
                     let mut tg = struct_to_vec(tg_options.clone());
                     if tg_options.text.is_none() || tg_options.text.unwrap().is_empty() {
-                        tg.push(("text", message_str.as_str()));
+                        tg.push(param("text", self.message.clone()));
                     }
-                    let peer_id_str = peer_id.to_string();
                     if tg_options.chat_id.is_none() || tg_options.chat_id.unwrap() == 0 {
-                        tg.push(("chat_id", &peer_id_str));
+                        tg.push(param("chat_id", peer_id.to_string()));
                     }
                     let j: String;
                     if keyboard.is_some() && tg_options.reply_markup.is_none() {
-                        j = if !keyboard.clone().unwrap().inline {
+                        let keyboard = keyboard.unwrap();
+                        j = if !keyboard.inline {
                             serde_json::to_string(&keyboard::ReplyKeyboardMarkup {
-                                keyboard: keyboard.clone().unwrap().tg_buttons.unwrap(),
-                                one_time_keyboard: keyboard.clone().unwrap().one_time,
+                                keyboard: keyboard.tg_buttons.unwrap(),
+                                one_time_keyboard: keyboard.one_time,
                             })
                             .unwrap()
                         } else {
                             serde_json::to_string(&keyboard::InlineKeyboardMarkup {
-                                inline_keyboard: keyboard.clone().unwrap().tg_buttons.unwrap(),
+                                inline_keyboard: keyboard.tg_buttons.unwrap(),
                             })
                             .unwrap()
                         };
-                        tg.push(("reply_markup", j.as_str()));
+                        tg.push(param("reply_markup", j));
                     }
                     if parse_mode != "HTML" {
-                        tg.push(("parse_mode", parse_mode.as_str()));
+                        tg.push(param("parse_mode", parse_mode));
                     }
                     if attachments.is_empty() && files.is_empty() {
                         api_call(Platform::Telegram, "sendMessage", tg, &config.clone())
@@ -272,10 +271,10 @@ impl MessageBuilder {
                         return;
                     }
                     if attachments.is_empty() {
-                        send_tg_attachments(attachments, &config, peer_id, &message_str).await;
+                        send_tg_attachments(attachments, &config, peer_id, &self.message).await;
                         return;
                     }
-                    send_tg_attachment_files(files, &config, peer_id, &message_str).await;
+                    send_tg_attachment_files(files, &config, peer_id, &self.message).await;
                 });
             }
         }
@@ -359,9 +358,9 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", peer_id.as_str()),
-                            ("message", message_str.as_str()),
-                            ("random_id", "0"),
+                            param("peer_id", peer_id),
+                            param("message", message_str),
+                            param("random_id", "0"),
                         ],
                         &config,
                     )
@@ -374,10 +373,7 @@ impl UnifyedContext {
                     api_call(
                         Platform::Telegram,
                         "sendMessage",
-                        vec![
-                            ("chat_id", peer_id.as_str()),
-                            ("text", message_str.as_str()),
-                        ],
+                        vec![param("chat_id", peer_id), param("text", message_str)],
                         &config,
                     )
                     .await
@@ -404,9 +400,9 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", peer_id.as_str()),
-                            ("message", message_str.as_str()),
-                            ("random_id", "0"),
+                            param("peer_id", peer_id),
+                            param("message", message_str),
+                            param("random_id", "0"),
                         ],
                         &config,
                     )
@@ -420,9 +416,9 @@ impl UnifyedContext {
                         Platform::Telegram,
                         "sendMessage",
                         vec![
-                            ("chat_id", peer_id.as_str()),
-                            ("text", message_str.as_str()),
-                            ("parse_mode", "HTML"),
+                            param("chat_id", peer_id),
+                            param("text", message_str),
+                            param("parse_mode", "HTML"),
                         ],
                         &config,
                     )
@@ -462,10 +458,10 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", peer_id.as_str()),
-                            ("message", message_str.as_str()),
-                            ("random_id", "0"),
-                            ("keyboard", j.as_str()),
+                            param("peer_id", peer_id),
+                            param("message", message_str),
+                            param("random_id", "0"),
+                            param("keyboard", j),
                         ],
                         &config,
                     )
@@ -491,10 +487,10 @@ impl UnifyedContext {
                         Platform::Telegram,
                         "sendMessage",
                         vec![
-                            ("chat_id", peer_id.as_str()),
-                            ("text", message_str.as_str()),
-                            ("reply_markup", j.as_str()),
-                            ("parse_mode", "HTML"),
+                            param("chat_id", peer_id),
+                            param("text", message_str),
+                            param("reply_markup", j),
+                            param("parse_mode", "HTML"),
                         ],
                         &config,
                     )
@@ -536,10 +532,10 @@ impl UnifyedContext {
         match self.platform {
             Platform::VK => {
                 let mut vk = struct_to_vec(options.vk);
-                if !vk.contains(&("message", message)) {
-                    vk.push(("message", message));
+                if !vk.contains(&param("message", message)) {
+                    vk.push(param("message", message));
                 }
-                vk.push(("random_id", "0"));
+                vk.push(param("random_id", "0"));
                 tokio::task::spawn(async move {
                     api_call(Platform::VK, "messages.send", vk, &config)
                         .await
@@ -548,8 +544,8 @@ impl UnifyedContext {
             }
             Platform::Telegram => {
                 let mut tg = struct_to_vec(options.tg);
-                if !tg.contains(&("text", message)) {
-                    tg.push(("text", message));
+                if !tg.contains(&param("text", message)) {
+                    tg.push(param("text", message));
                 }
                 tokio::task::spawn(async move {
                     api_call(Platform::Telegram, "sendMessage", tg, &config)
@@ -589,12 +585,12 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", &peer_id.to_string()),
-                            ("message", &message_str),
-                            ("random_id", "0"),
-                            (
+                            param("peer_id", peer_id.to_string()),
+                            param("message", &message_str),
+                            param("random_id", "0"),
+                            param(
                                 "attachment",
-                                &upload_vk_attachments(attachments, &config, peer_id)
+                                upload_vk_attachments(attachments, &config, peer_id)
                                     .await
                                     .unwrap(),
                             ),
@@ -650,12 +646,12 @@ impl UnifyedContext {
                         Platform::VK,
                         "messages.send",
                         vec![
-                            ("peer_id", &peer_id.to_string()),
-                            ("message", &message_str),
-                            ("random_id", "0"),
-                            (
+                            param("peer_id", peer_id.to_string()),
+                            param("message", &message_str),
+                            param("random_id", "0"),
+                            param(
                                 "attachment",
-                                &upload_vk_attachments(attachments, &config, peer_id)
+                                upload_vk_attachments(attachments, &config, peer_id)
                                     .await
                                     .unwrap(),
                             ),
@@ -683,31 +679,34 @@ impl UnifyedContext {
         &self,
         platform: Platform,
         method: &str,
-        params: Vec<(&str, &str)>,
+        params: Vec<(Cow<'_, str>, Cow<'_, str>)>,
     ) -> Value {
         api_call(platform, method, params, &self.config)
             .await
             .unwrap()
     }
-    /// Set data to context
+    /// Set String data to context
     /// # Arguments
-    /// * `data` - Data to set
+    /// * `data` - String Data to set
     /// # Examples
     /// ```
-    /// ctx.set_data("Hello, world!");
+    /// ctx.set_data("Hello, world!".to_string());
     /// ```
-    pub fn set_data<T: Any + Send + Sync>(&self, data: T) {
-        let mut data_to_edit = self.data.lock().unwrap();
-        *data_to_edit = Box::new(data);
+    pub fn set_data(&mut self, data: String) {
+        self.data = data;
     }
-    /// Get data from context
+    /// Deserialize JSON data from context
     /// # Examples
     /// ```
-    /// let data = ctx.get_data::<String>().unwrap();
+    /// #[derive(Deserialize)]
+    /// struct Test {
+    ///    test: String,
+    /// }
+    /// ctx.data = "{"test": "test"}".to_string();
+    /// let data = ctx.get_data::<Test>().unwrap();
     /// ```
-    pub fn get_data<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
-        let data = self.data.lock().unwrap();
-        data.downcast_ref::<T>().cloned()
+    pub fn get_data<T: DeserializeOwned>(&self) -> Option<T> {
+        serde_json::from_str(&self.data).ok()
     }
     /// Get event from context
     ///
@@ -728,9 +727,8 @@ impl UnifyedContext {
     ///    }
     ///}
     /// ```
-    pub fn get_event<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
-        let event = self.event.lock().unwrap();
-        event.downcast_ref::<T>().cloned()
+    pub fn get_event<T: DeserializeOwned>(&self) -> Option<T> {
+        serde_json::from_str(&self.event).ok()
     }
     /// Get attachments from context
     ///
@@ -749,12 +747,7 @@ impl UnifyedContext {
     ///       }
     ///   }
     /// ```
-    pub fn get_attachments<T: Any + Send + Sync + Clone>(&self) -> Option<Vec<T>> {
-        let attachments = self.attachments.lock().unwrap();
-        let result: Option<Vec<T>> = attachments
-            .iter()
-            .map(|attachment| attachment.downcast_ref::<T>().cloned())
-            .collect();
-        result
+    pub fn get_attachments<T: DeserializeOwned>(&self) -> Option<Vec<T>> {
+        serde_json::from_str(&self.attachments).ok()
     }
 }

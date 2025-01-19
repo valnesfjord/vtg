@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::any::Any;
-use std::sync::{Arc, Mutex};
+use serde_with::skip_serializing_none;
+use std::sync::Arc;
 
 use super::config::Config;
 use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
@@ -35,7 +35,8 @@ pub enum VKObject {
     MessageNew(VKMessageNew),
     MessageEvent(VKMessageEvent),
 }
-#[derive(Deserialize, Clone, Debug)]
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VKMessageEvent {
     pub user_id: i64,
     pub peer_id: i64,
@@ -43,11 +44,12 @@ pub struct VKMessageEvent {
     pub payload: String,
     pub conversation_message_id: i64,
 }
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VKMessageNew {
     pub message: VKMessage,
 }
 
+#[skip_serializing_none]
 #[derive(Deserialize, Clone, Debug, Serialize, Default)]
 /// VK Message struct, contains all the information about the new message
 pub struct VKMessage {
@@ -205,11 +207,11 @@ pub struct VKChatPhoto {
 }
 
 impl UnifyContext for VKUpdate {
-    fn unify(&self, config: &Config) -> UnifyedContext {
-        let event: Arc<Mutex<Box<dyn Any + Send + Sync>>>;
+    fn unify(&self, config: Arc<Config>) -> UnifyedContext {
+        let event: String;
         let (r#type, text, chat_id, message_id, from_id, attachments) = match self.object.clone() {
             Some(VKObject::MessageNew(message)) => {
-                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                event = serde_json::to_string(&message).unwrap();
                 (
                     EventType::MessageNew,
                     message.message.text.clone(),
@@ -220,10 +222,10 @@ impl UnifyContext for VKUpdate {
                 )
             }
             Some(VKObject::MessageEvent(message)) => {
-                event = Arc::new(Mutex::new(Box::new(message.clone())));
+                event = serde_json::to_string(&message).unwrap();
                 (
                     EventType::CallbackQuery,
-                    message.payload.clone(),
+                    message.payload,
                     message.peer_id,
                     message.conversation_message_id,
                     message.user_id,
@@ -231,10 +233,10 @@ impl UnifyContext for VKUpdate {
                 )
             }
             None => {
-                event = Arc::new(Mutex::new(Box::new(())));
+                event = String::new();
                 (
                     EventType::Unknown,
-                    "".to_owned(),
+                    String::new(),
                     0,
                     0,
                     0,
@@ -243,14 +245,14 @@ impl UnifyContext for VKUpdate {
             }
         };
         UnifyedContext {
-            text: text.clone(),
+            text,
             from_id,
             peer_id: chat_id,
             id: message_id,
             r#type,
             platform: Platform::VK,
-            data: Arc::new(Mutex::new(Box::new(()))),
-            config: Arc::new(config.clone()),
+            data: String::new(),
+            config,
             event,
             attachments,
         }

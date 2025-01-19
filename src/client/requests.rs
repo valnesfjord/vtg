@@ -1,4 +1,4 @@
-use crate::structs::context::Platform;
+use crate::{client::structs::FastFormSerializer, structs::context::Platform};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Empty, Full};
 use hyper::{
@@ -14,6 +14,7 @@ use lazy_static::lazy_static;
 use log::debug;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
+use std::borrow::Cow;
 use std::io::{self, Write};
 
 /// Error enum for HyperRequestError
@@ -38,11 +39,10 @@ lazy_static! {
 pub async fn request(
     url: &str,
     access_token: &str,
-    body: Vec<(&str, &str)>,
+    body: Vec<(Cow<'_, str>, Cow<'_, str>)>,
 ) -> Result<String, HyperRequestError> {
-    let form_body = form_urlencoded::Serializer::new(String::new())
-        .extend_pairs(body.iter())
-        .finish();
+    let mut serializer = FastFormSerializer::new(&body);
+    let form_body = serializer.extend_pairs(&body).finish();
     debug!("Request body: {}", form_body);
     let req = Request::builder()
         .method(Method::POST)
@@ -137,18 +137,21 @@ pub enum FileType {
     Other,
 }
 
-impl ToString for FileType {
-    fn to_string(&self) -> String {
-        match self {
-            FileType::Photo => "Photo".to_string(),
-            FileType::Video => "Video".to_string(),
-            FileType::Audio => "Audio".to_string(),
-            FileType::Document => "Document".to_string(),
-            FileType::Voice => "Voice".to_string(),
-            FileType::VideoNote => "Video_Note".to_string(),
-            FileType::Animation => "Animation".to_string(),
-            FileType::Other => "Other".to_string(),
-        }
+use std::fmt;
+
+impl fmt::Display for FileType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            FileType::Photo => "Photo",
+            FileType::Video => "Video",
+            FileType::Audio => "Audio",
+            FileType::Document => "Document",
+            FileType::Voice => "Voice",
+            FileType::VideoNote => "Video_Note",
+            FileType::Animation => "Animation",
+            FileType::Other => "Other",
+        };
+        write!(f, "{}", s)
     }
 }
 /// Sends a POST request with the specified files data to VK or Telegram servers.
@@ -171,10 +174,8 @@ pub async fn files_request(
     let mut body = vec![];
     let query = match data {
         Some(data) => {
-            "?".to_owned()
-                + &form_urlencoded::Serializer::new(String::new())
-                    .extend_pairs(data)
-                    .finish()
+            let mut serializer = FastFormSerializer::new_vec(&data);
+            "?".to_owned() + &serializer.extend_vec_pairs(&data).finish()
         }
         None => String::new(),
     };
