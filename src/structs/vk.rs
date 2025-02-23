@@ -1,28 +1,77 @@
-use serde::{Deserialize, Serialize};
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
+use std::fmt;
 use std::sync::Arc;
 
 use super::config::Config;
-use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
-use super::vk_attachments::{unify_attachments, VKAttachment};
+use super::context::{Event, EventType, Platform, UnifyContext, UnifyedContext};
+use super::vk_attachments::{VKAttachment, unify_attachments};
 
 #[derive(Deserialize, Debug)]
 pub struct VKGetServer {
     pub key: String,
     pub server: String,
+    #[serde(deserialize_with = "deserialize_ts")]
     pub ts: String,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct VKGetServerResponse {
     pub response: VKGetServer,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct VKGetUpdates {
+    pub failed: Option<i16>,
+    #[serde(deserialize_with = "deserialize_ts")]
     pub ts: String,
-    pub updates: Vec<VKUpdate>,
+    pub updates: Option<Vec<VKUpdate>>,
 }
 
+fn deserialize_ts<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct TSVisitor;
+
+    impl Visitor<'_> for TSVisitor {
+        type Value = String;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("string or number")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<String, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.to_string())
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<String, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.to_string())
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<String, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.to_string())
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<String, E>
+        where
+            E: de::Error,
+        {
+            Ok(value)
+        }
+    }
+
+    deserializer.deserialize_any(TSVisitor)
+}
 #[derive(Deserialize, Clone, Debug)]
 pub struct VKUpdate {
     pub r#type: String,
@@ -208,10 +257,10 @@ pub struct VKChatPhoto {
 
 impl UnifyContext for VKUpdate {
     fn unify(&self, config: Arc<Config>) -> UnifyedContext {
-        let event: String;
+        let event: Event;
         let (r#type, text, chat_id, message_id, from_id, attachments) = match self.object.clone() {
             Some(VKObject::MessageNew(message)) => {
-                event = serde_json::to_string(&message).unwrap();
+                event = Event::VKMessageNew(message.clone());
                 (
                     EventType::MessageNew,
                     message.message.text.clone(),
@@ -222,7 +271,7 @@ impl UnifyContext for VKUpdate {
                 )
             }
             Some(VKObject::MessageEvent(message)) => {
-                event = serde_json::to_string(&message).unwrap();
+                event = Event::VKMessageEvent(message.clone());
                 (
                     EventType::CallbackQuery,
                     message.payload,
@@ -233,7 +282,7 @@ impl UnifyContext for VKUpdate {
                 )
             }
             None => {
-                event = String::new();
+                event = Event::Unknown;
                 (
                     EventType::Unknown,
                     String::new(),

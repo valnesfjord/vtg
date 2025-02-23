@@ -20,8 +20,8 @@ use std::sync::Arc;
 use std::{convert::Infallible, net::SocketAddr};
 use tokio::net::TcpListener;
 use tokio::signal;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
+use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tokio::time::Instant;
 struct Cleanup {
     config: Arc<Config>,
@@ -113,9 +113,7 @@ async fn handle_request(
 ///
 ///async fn catch_new_message(ctx: UnifyedContext) -> UnifyedContext {
 ///    ctx
-///}
-
-///#[tokio::main]
+///}///#[tokio::main]
 ///async fn main() {
 ///    let vk_access_token = env::var("VK_ACCESS_TOKEN").unwrap();
 ///    let vk_group_id = env::var("VK_GROUP_ID").unwrap();

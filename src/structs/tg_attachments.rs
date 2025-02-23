@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use super::tg::TGMessage;
+use super::{context::EAttachment, tg::TGMessage};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PhotoSize {
@@ -184,12 +184,10 @@ pub struct WebAppData {
     pub button_text: String,
 }
 
-pub fn unify_attachments(message: Option<TGMessage>) -> String {
-    if message.is_none() {
-        return String::new();
-    }
+pub fn unify_attachments(message: Option<TGMessage>) -> Option<EAttachment> {
+    message.as_ref()?;
     let message = message.unwrap();
-    serde_json::to_string(&TGAttachment {
+    Some(EAttachment::Telegram(Box::new(TGAttachment {
         audio: message.audio,
         document: message.document,
         photo: message.photo,
@@ -201,8 +199,7 @@ pub fn unify_attachments(message: Option<TGMessage>) -> String {
         contact: message.contact,
         location: message.location,
         venue: message.venue,
-    })
-    .unwrap()
+    })))
 }
 
 #[skip_serializing_none]

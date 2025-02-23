@@ -1,24 +1,22 @@
 use vtg::{
     client::requests::{File, FileType},
-    structs::{
-        context::{Platform, UnifyedContext},
-        tg_attachments::TGAttachment,
-        vk_attachments::VKAttachment,
-    },
+    structs::context::{EAttachment, UnifyedContext},
     upload::Attachment,
 };
 
 pub async fn test_attachments(ctx: UnifyedContext) {
     ctx.send("test attachments (check console)");
 
-    if ctx.platform == Platform::VK {
-        let attachments = ctx.get_attachments::<VKAttachment>().unwrap_or_default();
-        println!("{:?}", attachments);
-        return;
+    if let Some(attachments) = ctx.attachments {
+        match attachments {
+            EAttachment::VK(vk_attachments) => {
+                println!("VK attachments: {:?}", vk_attachments);
+            }
+            EAttachment::Telegram(tg_attachment) => {
+                println!("TG attachment: {:?}", tg_attachment);
+            }
+        }
     }
-
-    let attachments = ctx.get_attachments::<TGAttachment>().unwrap_or_default();
-    println!("{:?}", attachments);
 }
 
 pub async fn send_files(ctx: UnifyedContext) {

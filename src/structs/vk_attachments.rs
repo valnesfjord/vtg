@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use super::vk::VKMessage;
+use super::{context::EAttachment, vk::VKMessage};
 
 #[skip_serializing_none]
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
@@ -173,14 +173,12 @@ pub struct Views {
     pub count: i64,
 }
 
-pub fn unify_attachments(message: Option<VKMessage>) -> String {
-    if message.is_none() {
-        return String::new();
-    }
+pub fn unify_attachments(message: Option<VKMessage>) -> Option<EAttachment> {
+    message.as_ref()?;
     let message = message.unwrap();
-    let mut attachments: Vec<String> = Vec::new();
+    let mut attachments: Vec<VKAttachment> = Vec::new();
     for attachment in message.attachments.unwrap_or_default() {
-        attachments.push(serde_json::to_string(&attachment).unwrap());
+        attachments.push(attachment);
     }
-    serde_json::to_string(&attachments).unwrap()
+    Some(EAttachment::VK(attachments))
 }
