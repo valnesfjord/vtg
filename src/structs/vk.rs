@@ -13,7 +13,7 @@ pub struct VKGetServer {
     pub key: String,
     pub server: String,
     #[serde(deserialize_with = "deserialize_ts")]
-    pub ts: i64,
+    pub ts: String,
 }
 #[derive(Deserialize, Debug)]
 pub struct VKGetServerResponse {
@@ -24,55 +24,54 @@ pub struct VKGetServerResponse {
 pub struct VKGetUpdates {
     pub failed: Option<i16>,
     #[serde(deserialize_with = "deserialize_ts")]
-    pub ts: i64,
+    pub ts: String,
     pub updates: Option<Vec<VKUpdate>>,
 }
 
-fn deserialize_ts<'de, D>(deserializer: D) -> Result<i64, D::Error>
+fn deserialize_ts<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
     struct TSVisitor;
 
     impl Visitor<'_> for TSVisitor {
-        type Value = i64;
+        type Value = String;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             formatter.write_str("string or number")
         }
 
-        fn visit_str<E>(self, value: &str) -> Result<i64, E>
+        fn visit_str<E>(self, value: &str) -> Result<String, E>
         where
             E: de::Error,
         {
-            value.parse().map_err(de::Error::custom)
+            Ok(value.to_string())
         }
 
-        fn visit_i64<E>(self, value: i64) -> Result<i64, E>
+        fn visit_i64<E>(self, value: i64) -> Result<String, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.to_string())
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<String, E>
+        where
+            E: de::Error,
+        {
+            Ok(value.to_string())
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<String, E>
         where
             E: de::Error,
         {
             Ok(value)
         }
-
-        fn visit_u64<E>(self, value: u64) -> Result<i64, E>
-        where
-            E: de::Error,
-        {
-            Ok(value as i64)
-        }
-
-        fn visit_string<E>(self, value: String) -> Result<i64, E>
-        where
-            E: de::Error,
-        {
-            value.parse().map_err(de::Error::custom)
-        }
     }
 
     deserializer.deserialize_any(TSVisitor)
 }
-
 #[derive(Deserialize, Clone, Debug)]
 pub struct VKUpdate {
     pub r#type: String,

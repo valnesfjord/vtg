@@ -30,7 +30,7 @@ use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
 async fn get_vk_updates(
     server: &mut str,
     key: &mut str,
-    ts: &mut i64,
+    ts: &mut String,
     tx: &Sender<UnifyedContext>,
     config: Arc<Config>,
 ) {
@@ -48,7 +48,7 @@ async fn get_vk_updates(
 
     let updates: VKGetUpdates = serde_json::from_str(&get_updates.unwrap_or("".to_string()))
         .unwrap_or(VKGetUpdates {
-            ts: *ts,
+            ts: ts.to_string(),
             updates: Some(vec![]),
             failed: Some(1),
         });
