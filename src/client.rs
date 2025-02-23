@@ -30,7 +30,7 @@ use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
 async fn get_vk_updates(
     server: &mut str,
     key: &mut str,
-    ts: &mut String,
+    ts: &mut i64,
     tx: &Sender<UnifyedContext>,
     config: Arc<Config>,
 ) {
@@ -48,15 +48,23 @@ async fn get_vk_updates(
 
     let updates: VKGetUpdates = serde_json::from_str(&get_updates.unwrap_or("".to_string()))
         .unwrap_or(VKGetUpdates {
-            ts: ts.to_string(),
-            updates: vec![],
+            ts: *ts,
+            updates: Some(vec![]),
+            failed: Some(1),
         });
+
+    if updates.failed.is_some() {
+        *ts = updates.ts;
+        return;
+    }
+
+    let vk_updates = updates.updates.unwrap_or_default();
     debug!(
         "[LONGPOLL] [VK] Got {} updates, processing",
-        updates.updates.len()
+        vk_updates.len()
     );
 
-    for update in updates.updates {
+    for update in vk_updates {
         let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
     }
