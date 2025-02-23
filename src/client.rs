@@ -16,7 +16,7 @@ use std::{panic, sync::Arc};
 use tokio::time::interval;
 use tokio::{select, sync::Mutex};
 use tokio::{
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::mpsc::{Receiver, Sender, channel},
     time::Instant,
 };
 

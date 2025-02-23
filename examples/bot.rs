@@ -90,7 +90,7 @@ async fn hears_middleware(ctx: UnifyedContext) -> UnifyedContext {
 
 #[tokio::main]
 async fn main() {
-    env::set_var("RUST_LOG", "vtg");
+    unsafe { env::set_var("RUST_LOG", "vtg") };
     env_logger::init();
 
     let config = Config {
