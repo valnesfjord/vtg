@@ -94,10 +94,8 @@ async fn main() {
     env_logger::init();
 
     let config = Config {
-        vk_access_token:
-            "5ebf710962b7073b8d3a6ee4d055a5839c9aa79cbfd5537f1453462f48ccc57683110ebfbe090da15649b"
-                .to_string(),
-        vk_group_id: 191724782,
+        vk_access_token: env::var("VK_ACCESS_TOKEN").unwrap(),
+        vk_group_id: env::var("VK_GROUP_ID").unwrap().parse().unwrap(),
         tg_access_token: env::var("TG_ACCESS_TOKEN").unwrap(),
         ..Default::default()
     };
