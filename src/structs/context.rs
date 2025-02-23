@@ -1,4 +1,5 @@
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -14,8 +15,30 @@ use crate::upload::{
 
 use super::config::Config;
 use super::struct_to_vec::{param, struct_to_vec};
+use super::tg::{TGCallbackQuery, TGChosenInlineResult, TGInlineQuery, TGMessage};
 use super::tg_api::TGSendMessageOptions;
+use super::tg_attachments::TGAttachment;
+use super::vk::{VKMessageEvent, VKMessageNew};
 use super::vk_api::VKMessagesSendOptions;
+use super::vk_attachments::VKAttachment;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Event {
+    VKMessageNew(VKMessageNew),
+    VKMessageEvent(VKMessageEvent),
+    TGMessage(TGMessage),
+    TGEditedMessage(TGMessage),
+    TGCallbackQuery(TGCallbackQuery),
+    TGInlineQuery(TGInlineQuery),
+    TGChosenInlineResult(TGChosenInlineResult),
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EAttachment {
+    VK(Vec<VKAttachment>),
+    Telegram(Box<TGAttachment>),
+}
 
 /// Unified context for working with both VK and Telegram
 /// Context is a struct that contains all the information about the event that happened in the chat
@@ -39,8 +62,8 @@ pub struct UnifyedContext {
     pub r#type: EventType,
     pub platform: Platform,
     pub data: String,
-    pub event: String,
-    pub attachments: String,
+    pub event: Event,
+    pub attachments: Option<EAttachment>,
     pub config: Arc<Config>,
 }
 
@@ -300,7 +323,44 @@ impl MessageBuilder {
         )
     }
 }
-
+/// Get event from context
+///
+/// # Examples
+/// ```
+/// use structs::context::Event;
+/// if ctx.r#type == EventType::MessageNew {
+///      match ctx.platform {
+///          Platform::Telegram => {
+///              let Event::TGMessage(event) = &ctx.event else {
+///                  return;
+///              };
+///              println!("{:?}", event);
+///          }
+///          Platform::VK => {
+///              let Event::VKMessageNew(event) = &ctx.event else {
+///                  return;
+///              };
+///              println!("{:?}", event);
+///          }
+///      }
+/// }
+/// ```
+/// Get attachments from context
+///
+/// # Examples
+/// ```
+/// use structs::context::EAttachment;
+/// if let Some(attachments) = ctx.attachments {
+///      match attachments {
+///          EAttachment::VK(vk_attachments) => {
+///              println!("VK attachments: {:?}", vk_attachments);
+///          }
+///          EAttachment::Telegram(tg_attachment) => {
+///              println!("TG attachment: {:?}", tg_attachment);
+///          }
+///      }
+///  }
+/// ```
 impl UnifyedContext {
     /// Create a message builder to send message, may be slower than ctx.send (work in progress)
     ///
@@ -707,47 +767,5 @@ impl UnifyedContext {
     /// ```
     pub fn get_data<T: DeserializeOwned>(&self) -> Option<T> {
         serde_json::from_str(&self.data).ok()
-    }
-    /// Get event from context
-    ///
-    /// # Examples
-    /// ```
-    /// use vtg::structs::vk::VKMessageNew;
-    /// use vtg::structs::tg::TGMessage;
-    /// if ctx.r#type == EventType::MessageNew {
-    ///    match ctx.platform {
-    ///       Platform::Telegram => {
-    ///            let event = ctx.get_event::<TGMessage>().unwrap();
-    ///            println!("{:?}", event);
-    ///        }
-    ///        Platform::VK => {
-    ///            let event = ctx.get_event::<VKMessageNew>().unwrap();
-    ///            println!("{:?}", event);
-    ///        }
-    ///    }
-    ///}
-    /// ```
-    pub fn get_event<T: DeserializeOwned>(&self) -> Option<T> {
-        serde_json::from_str(&self.event).ok()
-    }
-    /// Get attachments from context
-    ///
-    /// # Examples
-    /// ```
-    /// use vtg::structs::vk_attachments::VKAttachment;
-    /// use vtg::structs::tg_attachments::TGAttachment;
-    ///   match ctx.platform {
-    ///      Platform::Telegram => {
-    ///           let attachment = ctx.get_attachments::<TGAttachment>().unwrap();
-    ///           println!("{:?}", event);
-    ///       }
-    ///       Platform::VK => {
-    ///           let attachment = ctx.get_attachments::<VKAttachment>().unwrap();
-    ///           println!("{:?}", event);
-    ///       }
-    ///   }
-    /// ```
-    pub fn get_attachments<T: DeserializeOwned>(&self) -> Option<Vec<T>> {
-        serde_json::from_str(&self.attachments).ok()
     }
 }

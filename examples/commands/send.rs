@@ -1,9 +1,5 @@
 use regex_automata::util::captures::Captures;
-use vtg::structs::{
-    context::{EventType, Platform, UnifyedContext},
-    tg::TGMessage,
-    vk::VKMessageNew,
-};
+use vtg::structs::context::{Event, EventType, Platform, UnifyedContext};
 
 use crate::commands::get_potential_matches;
 
@@ -35,11 +31,15 @@ pub async fn test_event(ctx: UnifyedContext) {
     if ctx.r#type == EventType::MessageNew {
         match ctx.platform {
             Platform::Telegram => {
-                let event = ctx.get_event::<TGMessage>().unwrap();
+                let Event::TGMessage(event) = &ctx.event else {
+                    return;
+                };
                 println!("{:?}", event);
             }
             Platform::VK => {
-                let event = ctx.get_event::<VKMessageNew>().unwrap();
+                let Event::VKMessageNew(event) = &ctx.event else {
+                    return;
+                };
                 println!("{:?}", event);
             }
         }

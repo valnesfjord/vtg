@@ -4,14 +4,11 @@ use regex_automata::Input;
 use std::env;
 use vtg::structs::{
     config::Config,
-    context::{EventType, UnifyedContext},
+    context::{Event, EventType, UnifyedContext},
     middleware::MiddlewareChain,
     struct_to_vec::param,
 };
-use vtg::{
-    client::start_longpoll_client,
-    structs::{context::Platform, tg::TGCallbackQuery, vk::VKMessageNew},
-};
+use vtg::{client::start_longpoll_client, structs::context::Platform};
 
 extern crate vtg;
 mod commands;
@@ -28,12 +25,14 @@ async fn catch_new_message(mut ctx: UnifyedContext) -> UnifyedContext {
     ctx.set_data(54.to_string());
 
     if ctx.platform == Platform::VK {
-        let event = ctx.get_event::<VKMessageNew>().unwrap();
-        if event.message.payload.is_some() {
-            let k: KeyboardData =
-                serde_json::from_str(&event.message.payload.unwrap()).unwrap_or(KeyboardData {
-                    text: "".to_string(),
-                });
+        let Event::VKMessageNew(event) = &ctx.event else {
+            return ctx;
+        };
+
+        if let Some(payload) = &event.message.payload {
+            let k: KeyboardData = serde_json::from_str(payload).unwrap_or(KeyboardData {
+                text: "".to_string(),
+            });
             if !k.text.is_empty() {
                 ctx.text = k.text;
             }
@@ -48,9 +47,12 @@ async fn catch_tg_callback(mut ctx: UnifyedContext) -> UnifyedContext {
         return ctx;
     }
 
-    let event = ctx.get_event::<TGCallbackQuery>().unwrap();
-    if event.data.is_some() {
-        let k: KeyboardData = serde_json::from_str(&event.data.unwrap()).unwrap_or(KeyboardData {
+    let Event::TGCallbackQuery(event) = &ctx.event else {
+        return ctx;
+    };
+
+    if let Some(data) = &event.data {
+        let k: KeyboardData = serde_json::from_str(data).unwrap_or(KeyboardData {
             text: "".to_string(),
         });
         if !k.text.is_empty() {

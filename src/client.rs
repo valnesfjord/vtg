@@ -30,7 +30,7 @@ use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
 async fn get_vk_updates(
     server: &mut str,
     key: &mut str,
-    ts: &mut i64,
+    ts: &mut String,
     tx: &Sender<UnifyedContext>,
     config: Arc<Config>,
 ) {
@@ -61,7 +61,7 @@ async fn get_vk_updates(
         tx.send(unified).await.unwrap();
     }
 
-    *ts += 1;
+    *ts = updates.ts;
 }
 
 async fn get_vk_settings(config: Arc<Config>) -> VKGetServerResponse {
@@ -78,10 +78,7 @@ async fn get_vk_settings(config: Arc<Config>) -> VKGetServerResponse {
     .unwrap();
 
     let server: VKGetServerResponse = serde_json::from_str(&get_server).unwrap();
-    debug!(
-        "[LONGPOLL] [VK] Got longpoll server: {}",
-        server.response.server
-    );
+    debug!("[LONGPOLL] [VK] Got longpoll server: {:?}", server);
 
     server
 }
@@ -166,7 +163,7 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
     let vk_settings = get_vk_settings(config.clone()).await;
     let mut server = vk_settings.response.server;
     let mut key = vk_settings.response.key;
-    let mut ts = vk_settings.response.ts.parse::<i64>().unwrap();
+    let mut ts = vk_settings.response.ts;
     let mut offset: i64 = 0;
 
     let (tx, rx): (Sender<UnifyedContext>, Receiver<UnifyedContext>) = channel(100);
@@ -206,7 +203,7 @@ pub async fn start_longpoll_client(middleware: MiddlewareChain, config: Config) 
             let vk_settings = get_vk_settings(config.clone()).await;
             server = vk_settings.response.server;
             key = vk_settings.response.key;
-            ts = vk_settings.response.ts.parse::<i64>().unwrap();
+            ts = vk_settings.response.ts;
             },
         }
     }

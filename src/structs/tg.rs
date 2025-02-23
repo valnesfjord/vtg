@@ -4,7 +4,7 @@ use serde_with::skip_serializing_none;
 use std::sync::Arc;
 
 use super::config::Config;
-use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
+use super::context::{Event, EventType, Platform, UnifyContext, UnifyedContext};
 use super::tg_attachments::*;
 
 #[derive(Deserialize, Clone, Debug)]
@@ -141,13 +141,13 @@ pub struct TGChat {
 
 impl UnifyContext for TGUpdate {
     fn unify(&self, config: Arc<Config>) -> UnifyedContext {
-        let event: String;
+        let event: Event;
         let (r#type, text, chat_id, message_id, from_id) = match self {
             TGUpdate {
                 message: Some(message),
                 ..
             } => {
-                event = serde_json::to_string(&message).unwrap();
+                event = Event::TGMessage(message.clone());
                 (
                     EventType::MessageNew,
                     message.text.clone(),
@@ -160,7 +160,7 @@ impl UnifyContext for TGUpdate {
                 edited_message: Some(message),
                 ..
             } => {
-                event = serde_json::to_string(&message).unwrap();
+                event = Event::TGMessage(message.clone());
                 (
                     EventType::MessageEdit,
                     message.text.clone(),
@@ -173,7 +173,7 @@ impl UnifyContext for TGUpdate {
                 inline_query: Some(query),
                 ..
             } => {
-                event = serde_json::to_string(&query).unwrap();
+                event = Event::TGInlineQuery(query.clone());
                 (
                     EventType::InlineQuery,
                     Some(query.query.clone()),
@@ -186,7 +186,7 @@ impl UnifyContext for TGUpdate {
                 chosen_inline_result: Some(result),
                 ..
             } => {
-                event = serde_json::to_string(&result).unwrap();
+                event = Event::TGChosenInlineResult(result.clone());
                 (
                     EventType::ChosenInlineResult,
                     Some(result.query.clone()),
@@ -199,7 +199,7 @@ impl UnifyContext for TGUpdate {
                 callback_query: Some(query),
                 ..
             } => {
-                event = serde_json::to_string(&query).unwrap();
+                event = Event::TGCallbackQuery(query.clone());
                 (
                     EventType::CallbackQuery,
                     query.data.clone(),
@@ -210,7 +210,7 @@ impl UnifyContext for TGUpdate {
             }
 
             _ => {
-                event = String::new();
+                event = Event::Unknown;
                 (EventType::Unknown, None, 0, 0, 0)
             }
         };

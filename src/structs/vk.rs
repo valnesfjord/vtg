@@ -3,7 +3,7 @@ use serde_with::skip_serializing_none;
 use std::sync::Arc;
 
 use super::config::Config;
-use super::context::{EventType, Platform, UnifyContext, UnifyedContext};
+use super::context::{Event, EventType, Platform, UnifyContext, UnifyedContext};
 use super::vk_attachments::{unify_attachments, VKAttachment};
 
 #[derive(Deserialize, Debug)]
@@ -12,7 +12,7 @@ pub struct VKGetServer {
     pub server: String,
     pub ts: String,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct VKGetServerResponse {
     pub response: VKGetServer,
 }
@@ -208,10 +208,10 @@ pub struct VKChatPhoto {
 
 impl UnifyContext for VKUpdate {
     fn unify(&self, config: Arc<Config>) -> UnifyedContext {
-        let event: String;
+        let event: Event;
         let (r#type, text, chat_id, message_id, from_id, attachments) = match self.object.clone() {
             Some(VKObject::MessageNew(message)) => {
-                event = serde_json::to_string(&message).unwrap();
+                event = Event::VKMessageNew(message.clone());
                 (
                     EventType::MessageNew,
                     message.message.text.clone(),
@@ -222,7 +222,7 @@ impl UnifyContext for VKUpdate {
                 )
             }
             Some(VKObject::MessageEvent(message)) => {
-                event = serde_json::to_string(&message).unwrap();
+                event = Event::VKMessageEvent(message.clone());
                 (
                     EventType::CallbackQuery,
                     message.payload,
@@ -233,7 +233,7 @@ impl UnifyContext for VKUpdate {
                 )
             }
             None => {
-                event = String::new();
+                event = Event::Unknown;
                 (
                     EventType::Unknown,
                     String::new(),
