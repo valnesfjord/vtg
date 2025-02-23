@@ -28,6 +28,12 @@ pub struct VKGetUpdates {
     pub updates: Option<Vec<VKUpdate>>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct VKTs {
+    #[serde(deserialize_with = "deserialize_ts")]
+    pub ts: String,
+}
+
 fn deserialize_ts<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,

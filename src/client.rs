@@ -25,7 +25,7 @@ use crate::structs::context::{UnifyContext, UnifyedContext};
 use crate::structs::middleware::MiddlewareChain;
 use crate::structs::struct_to_vec::param;
 use crate::structs::tg::TGGetUpdates;
-use crate::structs::vk::{VKGetServerResponse, VKGetUpdates};
+use crate::structs::vk::{VKGetServerResponse, VKGetUpdates, VKTs};
 
 async fn get_vk_updates(
     server: &mut str,
@@ -46,15 +46,21 @@ async fn get_vk_updates(
     )
     .await;
 
-    let updates: VKGetUpdates = serde_json::from_str(&get_updates.unwrap_or("".to_string()))
-        .unwrap_or(VKGetUpdates {
-            ts: ts.to_string(),
-            updates: Some(vec![]),
-            failed: Some(1),
-        });
+    // REFACTOR: need to refactor this as soon as posible
+    let empty_str = "".to_string();
+    let updates_str = get_updates.as_ref().unwrap_or(&empty_str);
+    let updates: VKGetUpdates = serde_json::from_str(updates_str).unwrap_or(VKGetUpdates {
+        ts: ts.clone(),
+        updates: Some(vec![]),
+        failed: Some(1),
+    });
+
+    *ts = updates.ts;
 
     if updates.failed.is_some() {
-        *ts = updates.ts;
+        if let Ok(vk_ts) = serde_json::from_str::<VKTs>(updates_str) {
+            *ts = vk_ts.ts;
+        }
         return;
     }
 
@@ -68,8 +74,6 @@ async fn get_vk_updates(
         let unified = update.unify(config.clone());
         tx.send(unified).await.unwrap();
     }
-
-    *ts = updates.ts;
 }
 
 async fn get_vk_settings(config: Arc<Config>) -> VKGetServerResponse {
